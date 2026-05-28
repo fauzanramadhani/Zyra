@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#FAFBFC] text-[#172B4D] font-sans antialiased selection:bg-zyra-primary-light selection:text-zyra-primary-dark;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f4f5f7;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c7d0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a5adba;
+}
+
+/* Glassmorphism panel styling */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(223, 225, 230, 0.5);
+}
+
+.dark .glass-panel {
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+/* Drag and Drop card placeholder stylings */
+.column-drag-over {
+  background-color: #ebecf0;
+  border: 2px dashed #f97316;
+  border-radius: 4px;
+}
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  @apply outline-none border border-zyra-gray-border rounded-md p-3 min-h-[120px] bg-white transition duration-200 focus:border-zyra-primary;
+}
+
+.ProseMirror p {
+  @apply mb-2;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-bold mb-3 mt-4;
+}
+
+.ProseMirror h3 {
+  @apply text-lg font-semibold mb-2 mt-3;
+}
+
+.ProseMirror ul {
+  @apply list-disc list-inside mb-3;
+}
+
+.ProseMirror ol {
+  @apply list-decimal list-inside mb-3;
+}

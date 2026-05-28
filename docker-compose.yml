@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: zyra_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_postgres_pwd_123}
+      POSTGRES_DB: ${POSTGRES_DB:-zyra}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - zyra_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-zyra}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis Service (Queue & Caching)
+  redis:
+    image: redis:7-alpine
+    container_name: zyra_redis
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - zyra_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend Service (Express + TypeScript + Socket.IO + BullMQ + Prisma)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: zyra_backend
+    restart: always
+    environment:
+      - PORT=5000
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-secure_postgres_pwd_123}@postgres:5432/${POSTGRES_DB:-zyra}?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-super_secret_zyra_access_key_2026_change_me}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-super_secret_zyra_refresh_key_2026_change_me}
+      - JWT_ACCESS_EXPIRY=15m
+      - JWT_REFRESH_EXPIRY=7d
+      - UPLOAD_DIR=/app/uploads
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zyra_network
+    # Run migrations, auto-seed database, and start the development server
+    command: sh -c "npx prisma db push && npm run seed && npm run dev"
+
+  # Frontend Service (Vue 3 + Vite + TailwindCSS)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: zyra_frontend
+    restart: always
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+      - VITE_SOCKET_URL=http://localhost:5000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - zyra_network
+    depends_on:
+      - backend
+    command: npm run dev -- --host
+
+  # Adminer Service (Web interface for PostgreSQL)
+  adminer:
+    image: adminer:latest
+    container_name: zyra_adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - zyra_network
+
+  # RedisInsight Service (Web interface for Redis)
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: zyra_redisinsight
+    restart: always
+    ports:
+      - "8001:5540"
+    depends_on:
+      - redis
+    networks:
+      - zyra_network
+
+networks:
+  zyra_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: zyra_postgres_data
+  redis_data:
+    name: zyra_redis_data
+  uploads_data:
+    name: zyra_uploads_data
