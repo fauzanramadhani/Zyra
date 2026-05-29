@@ -1,14 +1,14 @@
 <template>
-  <div class="flex-grow p-6 flex flex-col h-screen overflow-hidden text-[#172B4D]">
+  <div class="flex-grow p-6 flex flex-col h-screen overflow-hidden text-[#172B4D] dark:text-slate-200">
     
     <!-- Top Header -->
     <div class="mb-6">
-      <h1 class="text-xl font-bold text-slate-800">CSV Importer</h1>
+      <h1 class="text-xl font-bold text-slate-800 dark:text-white">CSV Importer</h1>
       <p class="text-xs text-slate-400">Migrate issues from Jira Cloud/Server or bulk load tickets using customized templates</p>
     </div>
 
     <!-- Step Progress Bar -->
-    <div class="flex items-center gap-2 mb-8 bg-white p-4 rounded-xl border border-gray-200 shadow-sm max-w-3xl">
+    <div class="flex items-center gap-2 mb-8 bg-white dark:bg-zyra-gray-darkCard p-4 rounded-xl border border-gray-200 dark:border-zyra-gray-darkBorder shadow-sm max-w-3xl">
       <div v-for="step in steps" :key="step.number" class="flex items-center gap-2 flex-grow last:flex-grow-0">
         <div
           :class="stepNumberClass(step.number)"
@@ -18,23 +18,23 @@
         </div>
         <span :class="stepTextClass(step.number)" class="text-xs font-semibold select-none">{{ step.label }}</span>
         <!-- Connector line -->
-        <div v-if="step.number < 4" class="h-0.5 bg-gray-200 flex-grow mx-4 rounded"></div>
+        <div v-if="step.number < 4" class="h-0.5 bg-gray-200 dark:bg-slate-700 flex-grow mx-4 rounded"></div>
       </div>
     </div>
 
     <!-- Step 1: Upload file panel -->
-    <div v-if="currentStep === 1" class="flex-grow flex flex-col justify-center items-center max-w-3xl bg-white border border-gray-200 rounded-xl shadow-sm p-8">
+    <div v-if="currentStep === 1" class="flex-grow flex flex-col justify-center items-center max-w-3xl bg-white dark:bg-zyra-gray-darkCard border border-gray-200 dark:border-zyra-gray-darkBorder rounded-xl shadow-sm p-8">
       <div
         @dragover.prevent="isDragging = true"
         @dragleave.prevent="isDragging = false"
         @drop.prevent="handleFileDrop"
         :class="{ 'border-zyra-primary bg-orange-50/20': isDragging }"
-        class="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center bg-gray-50 hover:bg-gray-100 transition cursor-pointer w-full"
+        class="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl p-12 text-center bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-slate-700 transition cursor-pointer w-full"
         @click="$refs.csvInput.click()"
       >
         <input type="file" ref="csvInput" class="hidden" accept=".csv" @change="handleFileSelect" />
         <UploadCloudIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 class="font-bold text-sm text-gray-700">Drag your CSV export here</h3>
+        <h3 class="font-bold text-sm text-gray-700 dark:text-slate-200">Drag your CSV export here</h3>
         <p class="text-xs text-gray-400 mt-1.5">Or browse files from your computer (UTF-8 encoding support)</p>
       </div>
 
@@ -44,13 +44,13 @@
     </div>
 
     <!-- Step 2: Mapping panel -->
-    <div v-else-if="currentStep === 2 && previewData" class="flex-grow flex flex-col overflow-hidden max-w-4xl bg-white border border-gray-200 rounded-xl shadow-sm">
-      <div class="p-5 border-b border-gray-200 flex justify-between items-center bg-slate-50">
+    <div v-else-if="currentStep === 2 && previewData" class="flex-grow flex flex-col overflow-hidden max-w-4xl bg-white dark:bg-zyra-gray-darkCard border border-gray-200 dark:border-zyra-gray-darkBorder rounded-xl shadow-sm">
+      <div class="p-5 border-b border-gray-200 dark:border-zyra-gray-darkBorder flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
         <div>
           <h3 class="font-bold text-sm text-slate-800">Map CSV Headers to Fields</h3>
           <p class="text-xs text-slate-400">Match your source columns to target fields. Columns not mapped will be saved as Custom Metadata.</p>
         </div>
-        <span class="text-xs text-slate-400 font-bold bg-white px-3 py-1 rounded-lg border border-gray-200">
+        <span class="text-xs text-slate-400 font-bold bg-white dark:bg-slate-800 px-3 py-1 rounded-lg border border-gray-200 dark:border-slate-700">
           Filename: {{ previewData.originalName }}
         </span>
       </div>
@@ -59,19 +59,19 @@
       <div class="flex-grow overflow-y-auto p-5">
         <table class="w-full text-left border-collapse text-xs">
           <thead>
-            <tr class="border-b border-gray-200 text-slate-500 font-bold uppercase">
+            <tr class="border-b border-gray-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold uppercase">
               <th class="pb-3 w-1/3">CSV Header Column</th>
               <th class="pb-3 w-1/3">Map To Target Field</th>
               <th class="pb-3">Sample Row Values</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-150 text-slate-700">
+          <tbody class="divide-y divide-gray-150 dark:divide-slate-700 text-slate-700 dark:text-slate-300">
             <tr v-for="(suggestion, idx) in columnMappings" :key="suggestion.header + '-' + idx" class="hover:bg-slate-50/50">
-              <td class="py-3 font-semibold text-slate-800">{{ suggestion.header }}</td>
+              <td class="py-3 font-semibold text-slate-800 dark:text-slate-200">{{ suggestion.header }}</td>
               <td class="py-3 pr-4">
                 <select
                   v-model="suggestion.targetField"
-                  class="w-full border border-gray-300 rounded px-2 py-1 bg-white outline-none focus:ring-1 focus:ring-zyra-primary focus:border-transparent"
+                  class="w-full border border-gray-300 dark:border-slate-600 rounded px-2 py-1 bg-white dark:bg-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-zyra-primary focus:border-transparent"
                 >
                   <option value="">-- Save as Custom Field --</option>
                   <option value="issueKey">Issue Key (e.g. PROJ-12)</option>

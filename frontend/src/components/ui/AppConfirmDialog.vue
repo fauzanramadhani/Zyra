@@ -70,15 +70,15 @@ function onCancel() {
       <div class="w-12 h-12 rounded-full flex items-center justify-center border text-xl mb-4" :class="variantStyles[variant].iconBg">
         {{ variantStyles[variant].icon }}
       </div>
-      <h3 class="text-base font-bold text-slate-800 mb-1">{{ title }}</h3>
-      <p v-if="description" class="text-sm text-slate-500 max-w-xs">{{ description }}</p>
+      <h3 class="text-base font-bold text-slate-800 dark:text-white mb-1">{{ title }}</h3>
+      <p v-if="description" class="text-sm text-slate-500 dark:text-slate-400 max-w-xs">{{ description }}</p>
     </div>
 
     <template #footer>
       <button
         @click="onCancel"
         :disabled="loading"
-        class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition disabled:opacity-50"
+        class="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition disabled:opacity-50"
       >
         {{ cancelText }}
       </button>

@@ -4,17 +4,17 @@ import { useToastStore, type ToastVariant } from '../../store/toast'
 const toastStore = useToastStore()
 
 const variantStyles: Record<ToastVariant, { bg: string; icon: string; border: string }> = {
-  success: { bg: 'bg-green-50', icon: '✓', border: 'border-green-200' },
-  error: { bg: 'bg-red-50', icon: '✕', border: 'border-red-200' },
-  warning: { bg: 'bg-amber-50', icon: '⚠', border: 'border-amber-200' },
-  info: { bg: 'bg-blue-50', icon: 'ℹ', border: 'border-blue-200' },
+  success: { bg: 'bg-green-50 dark:bg-green-950/50', icon: '✓', border: 'border-green-200 dark:border-green-800' },
+  error: { bg: 'bg-red-50 dark:bg-red-950/50', icon: '✕', border: 'border-red-200 dark:border-red-800' },
+  warning: { bg: 'bg-amber-50 dark:bg-amber-950/50', icon: '⚠', border: 'border-amber-200 dark:border-amber-800' },
+  info: { bg: 'bg-blue-50 dark:bg-blue-950/50', icon: 'ℹ', border: 'border-blue-200 dark:border-blue-800' },
 }
 
 const variantText: Record<ToastVariant, string> = {
-  success: 'text-green-800',
-  error: 'text-red-800',
-  warning: 'text-amber-800',
-  info: 'text-blue-800',
+  success: 'text-green-800 dark:text-green-200',
+  error: 'text-red-800 dark:text-red-200',
+  warning: 'text-amber-800 dark:text-amber-200',
+  info: 'text-blue-800 dark:text-blue-200',
 }
 </script>
 

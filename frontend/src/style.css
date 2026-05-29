@@ -6,6 +6,9 @@
   body {
     @apply bg-[#FAFBFC] text-[#172B4D] font-sans antialiased selection:bg-zyra-primary-light selection:text-zyra-primary-dark;
   }
+  .dark body {
+    @apply bg-zyra-gray-darkBg text-slate-200;
+  }
 }
 
 /* Custom Scrollbars */
@@ -28,6 +31,18 @@
   background: #a5adba;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
 /* Glassmorphism panel styling */
 .glass-panel {
   background: rgba(255, 255, 255, 0.8);
@@ -48,9 +63,21 @@
   border-radius: 4px;
 }
 
+.dark .column-drag-over {
+  background-color: #1e293b;
+}
+
 /* TipTap Editor Styles */
 .ProseMirror {
   @apply outline-none border border-zyra-gray-border rounded-md p-3 min-h-[120px] bg-white transition duration-200 focus:border-zyra-primary;
+}
+
+.dark .ProseMirror {
+  @apply bg-slate-800 border-slate-600 text-slate-200;
+}
+
+.dark .ProseMirror:focus {
+  @apply border-zyra-primary;
 }
 
 .ProseMirror p {

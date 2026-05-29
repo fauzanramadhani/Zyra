@@ -1,10 +1,10 @@
 <template>
-  <div class="flex-grow p-6 flex flex-col h-screen overflow-hidden text-[#172B4D]">
+  <div class="flex-grow p-6 flex flex-col h-screen overflow-hidden text-[#172B4D] dark:text-slate-200">
 
     <!-- Top Filter Header -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-xl font-bold text-slate-800">
+        <h1 class="text-xl font-bold text-slate-800 dark:text-white">
           {{ projectStore.currentProject?.name || 'Loading Project...' }} Board
         </h1>
         <p class="text-xs text-slate-400">Kanban Board — Drag cards to precise positions</p>
@@ -18,7 +18,7 @@
     </div>
 
     <!-- Filters Row -->
-    <div class="flex flex-wrap gap-3 items-center mb-6 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div class="flex flex-wrap gap-3 items-center mb-6 p-4 bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-gray-200 dark:border-zyra-gray-darkBorder shadow-sm">
       <div class="relative w-64">
         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
           <SearchIcon class="w-4 h-4" />
@@ -27,7 +27,7 @@
           type="text"
           v-model="searchQuery"
           placeholder="Search issues..."
-          class="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 rounded-lg outline-none focus:ring-1 focus:ring-zyra-primary focus:border-transparent bg-slate-50"
+          class="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg outline-none focus:ring-1 focus:ring-zyra-primary focus:border-transparent bg-slate-50 dark:bg-slate-800 dark:text-slate-200"
         />
       </div>
 
@@ -35,7 +35,7 @@
       <select
         v-model="selectedSprintId"
         @change="loadBoard"
-        class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-slate-50 outline-none min-w-[160px]"
+        class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none min-w-[160px]"
       >
         <option value="">All Sprints</option>
         <option value="backlog">📦 Backlog only</option>
@@ -44,7 +44,7 @@
         </option>
       </select>
 
-      <select v-model="filterType" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-slate-50 outline-none">
+      <select v-model="filterType" class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none">
         <option value="">All Types</option>
         <option value="STORY">Stories</option>
         <option value="TASK">Tasks</option>
@@ -52,7 +52,7 @@
         <option value="EPIC">Epics</option>
       </select>
 
-      <select v-model="filterPriority" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-slate-50 outline-none">
+      <select v-model="filterPriority" class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none">
         <option value="">All Priorities</option>
         <option value="LOW">Low</option>
         <option value="MEDIUM">Medium</option>
@@ -76,7 +76,7 @@
         <!-- Drag Disabled Warning -->
         <div
           v-if="hasActiveFilters"
-          class="flex items-center gap-1.5 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg"
+          class="flex items-center gap-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-2.5 py-1 rounded-lg"
         >
           <span>⚠</span>
           <span>Drag & drop disabled while filters are active</span>
@@ -89,14 +89,14 @@
       <div
         v-for="col in projectStore.currentBoard.columns"
         :key="col.id"
-        class="w-72 flex-shrink-0 bg-slate-100 rounded-xl p-3 flex flex-col max-h-full border border-slate-200 transition-colors"
+        class="w-72 flex-shrink-0 bg-slate-100 dark:bg-zyra-gray-darkCard rounded-xl p-3 flex flex-col max-h-full border border-slate-200 dark:border-zyra-gray-darkBorder transition-colors"
         :class="{ 'border-orange-400 bg-orange-50/30': isDraggingOver === col.id }"
       >
         <!-- Column title header -->
         <div class="flex justify-between items-center mb-3.5 px-1">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
             <span>{{ col.name }}</span>
-            <span class="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full text-[10px] font-bold">
+            <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-[10px] font-bold">
               {{ hasActiveFilters ? col.issues.filter(cardMatchesFilter).length : col.issues.length }}
             </span>
           </h3>
@@ -123,7 +123,7 @@
             :key="card.id"
             v-show="cardMatchesFilter(card)"
             :data-id="card.id"
-            class="board-card bg-white rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow-md hover:border-orange-300 cursor-grab active:cursor-grabbing flex flex-col justify-between group mb-2.5"
+            class="board-card bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3 shadow-sm hover:shadow-md hover:border-orange-300 cursor-grab active:cursor-grabbing flex flex-col justify-between group mb-2.5"
             :class="[priorityBorderClass(card.priority)]"
             @click.stop="openIssueDetails(card.id)"
           >
@@ -137,9 +137,9 @@
               Blocked
             </span>
             <!-- Card title -->
-            <h4 class="text-sm font-semibold text-slate-700 line-clamp-2 leading-snug mb-1">{{ card.summary }}</h4>
+            <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 line-clamp-2 leading-snug mb-1">{{ card.summary }}</h4>
 
-            <div class="flex justify-between items-center pt-2.5 border-t border-slate-100 mt-2.5">
+            <div class="flex justify-between items-center pt-2.5 border-t border-slate-100 dark:border-slate-700 mt-2.5">
               <div class="flex items-center gap-2">
                 <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider" :class="typeClass(card.type)">
                   {{ card.type }}
@@ -153,7 +153,7 @@
                 <!-- Story Points -->
                 <span
                   v-if="card.storyPoints !== null && card.storyPoints !== undefined"
-                  class="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-bold flex items-center justify-center"
+                  class="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300 text-[10px] font-bold flex items-center justify-center"
                   title="Story Points"
                 >
                   {{ card.storyPoints }}
@@ -165,7 +165,7 @@
                   class="w-6 h-6 rounded-full border border-slate-200 shadow-sm"
                   :title="`${card.assignee.firstName} ${card.assignee.lastName}`"
                 />
-                <span v-else class="w-6 h-6 rounded-full border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-[10px] text-gray-400" title="Unassigned">
+                <span v-else class="w-6 h-6 rounded-full border border-dashed border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-[10px] text-gray-400" title="Unassigned">
                   👤
                 </span>
               </div>
@@ -176,7 +176,7 @@
         <!-- Empty column placeholder shown when no issues -->
         <div
           v-if="col.issues.length === 0"
-          class="flex items-center justify-center h-16 text-xs text-slate-400 border-2 border-dashed border-slate-200 rounded-lg mt-1"
+          class="flex items-center justify-center h-16 text-xs text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg mt-1"
         >
           Drop cards here
         </div>
@@ -198,13 +198,13 @@
     <AppDialog v-model="showCreateModal" title="Create New Issue" size="md">
       <form @submit.prevent="createIssue" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Summary</label>
-          <input type="text" v-model="createSummary" required placeholder="What needs to be done?" maxlength="255" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-zyra-primary outline-none" />
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Summary</label>
+          <input type="text" v-model="createSummary" required placeholder="What needs to be done?" maxlength="255" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-zyra-primary outline-none" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Issue Type</label>
-            <select v-model="createType" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-zyra-primary outline-none bg-white">
+            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Issue Type</label>
+            <select v-model="createType" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-zyra-primary outline-none bg-white dark:bg-slate-800 dark:text-slate-200">
               <option value="STORY">Story</option>
               <option value="TASK">Task</option>
               <option value="BUG">Bug</option>
@@ -212,8 +212,8 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Priority</label>
-            <select v-model="createPriority" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-zyra-primary outline-none bg-white">
+            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Priority</label>
+            <select v-model="createPriority" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-zyra-primary outline-none bg-white dark:bg-slate-800 dark:text-slate-200">
               <option value="LOW">Low</option>
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>

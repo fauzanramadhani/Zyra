@@ -80,7 +80,7 @@
       </form>
 
       <!-- Footer links -->
-      <div class="mt-8 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
+      <div class="mt-8 pt-6 border-t border-slate-200 text-center text-xs text-slate-500 dark:text-slate-400">
         <p>
           Already have an account?
           <router-link to="/login" class="text-zyra-primary font-bold hover:underline">Log In</router-link>

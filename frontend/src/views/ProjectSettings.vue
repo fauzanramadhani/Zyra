@@ -1,56 +1,56 @@
 <template>
-  <div class="p-4 md:p-8 bg-slate-50 min-h-screen space-y-6 md:space-y-8 font-sans">
+  <div class="p-4 md:p-8 bg-slate-50 dark:bg-zyra-gray-darkBg min-h-screen space-y-6 md:space-y-8 font-sans">
     <!-- Header -->
-    <div class="flex items-center justify-between pb-6 border-b border-slate-200">
+    <div class="flex items-center justify-between pb-6 border-b border-slate-200 dark:border-zyra-gray-darkBorder">
       <div>
-        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Project Settings</h1>
-        <p class="text-sm text-slate-500 mt-1">Configure project identifiers, visibility settings, members, and delete actions.</p>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Project Settings</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure project identifiers, visibility settings, members, and delete actions.</p>
       </div>
     </div>
 
     <!-- Forms Grid -->
     <div class="grid grid-cols-1 gap-8">
       <!-- General Settings -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-6 border-b border-slate-200 bg-slate-50/50">
-          <h2 class="text-lg font-bold text-slate-800">Project Details</h2>
-          <p class="text-xs text-slate-500">Update project name, key identifier, and visibility representation.</p>
+      <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-200 dark:border-zyra-gray-darkBorder bg-slate-50/50 dark:bg-slate-800/50">
+          <h2 class="text-lg font-bold text-slate-800 dark:text-white">Project Details</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Update project name, key identifier, and visibility representation.</p>
         </div>
         <div class="p-6">
           <form @submit.prevent="saveProject" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-1.5">
-                <label class="block text-sm font-semibold text-slate-700">Project Name</label>
-                <input type="text" v-model="projectForm.name" required maxlength="80" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" />
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Project Name</label>
+                <input type="text" v-model="projectForm.name" required maxlength="80" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" />
               </div>
 
               <div class="space-y-1.5">
-                <label class="block text-sm font-semibold text-slate-700">Project Key</label>
-                <input type="text" v-model="projectForm.key" required maxlength="5" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition uppercase" />
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Project Key</label>
+                <input type="text" v-model="projectForm.key" required maxlength="5" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition uppercase" />
               </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-1.5">
-                <label class="block text-sm font-semibold text-slate-700">Visibility</label>
-                <select v-model="projectForm.visibility" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Visibility</label>
+                <select v-model="projectForm.visibility" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
                   <option value="PUBLIC">Public (Accessible by all workspace members)</option>
                   <option value="PRIVATE">Private (Restricted to added members only)</option>
                 </select>
               </div>
 
               <div class="space-y-1.5">
-                <label class="block text-sm font-semibold text-slate-700">Project Icon</label>
-                <input type="text" v-model="projectForm.icon" placeholder="Emoji, e.g. 🚀, 💻, 🍊" maxlength="10" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" />
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Project Icon</label>
+                <input type="text" v-model="projectForm.icon" placeholder="Emoji, e.g. 🚀, 💻, 🍊" maxlength="10" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" />
               </div>
             </div>
 
             <div class="space-y-1.5">
-              <label class="block text-sm font-semibold text-slate-700">Description</label>
-              <textarea v-model="projectForm.description" rows="3" maxlength="500" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" placeholder="Add a short description about this project..."></textarea>
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Description</label>
+              <textarea v-model="projectForm.description" rows="3" maxlength="500" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition" placeholder="Add a short description about this project..."></textarea>
             </div>
 
-            <div class="flex justify-end pt-4 border-t border-slate-100">
+            <div class="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-700">
               <button type="submit" :disabled="saving" class="px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 disabled:opacity-50 transition shadow-sm">
                 {{ saving ? 'Saving...' : 'Save Project Details' }}
               </button>
@@ -60,18 +60,18 @@
       </div>
 
       <!-- Members Management -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="border-b border-slate-200 bg-slate-50/50 px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder shadow-sm overflow-hidden">
+        <div class="border-b border-slate-200 dark:border-zyra-gray-darkBorder bg-slate-50/50 dark:bg-slate-800/50 px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 class="text-lg font-bold text-slate-800">Project Members</h2>
-            <p class="text-xs text-slate-500">Manage memberships and roles specific to this software project.</p>
+            <h2 class="text-lg font-bold text-slate-800 dark:text-white">Project Members</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Manage memberships and roles specific to this software project.</p>
           </div>
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-            <select v-model="addMemberForm.email" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+            <select v-model="addMemberForm.email" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
               <option value="">Select workspace user...</option>
               <option v-for="u in workspaceUsers" :key="u.id" :value="u.email">{{ u.firstName }} {{ u.lastName }} ({{ u.email }})</option>
             </select>
-            <select v-model="addMemberForm.role" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
+            <select v-model="addMemberForm.role" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
               <option value="MEMBER">Member</option>
               <option value="ADMIN">Admin</option>
               <option value="VIEWER">Viewer</option>
@@ -83,17 +83,17 @@
         </div>
 
         <div class="p-6">
-          <div class="divide-y divide-slate-150 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/20">
-            <div v-for="m in members" :key="m.id" class="p-4 flex items-center justify-between hover:bg-slate-50 transition">
+          <div class="divide-y divide-slate-150 dark:divide-slate-700 border border-slate-200 dark:border-zyra-gray-darkBorder rounded-xl overflow-hidden bg-slate-50/20 dark:bg-slate-800/30">
+            <div v-for="m in members" :key="m.id" class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition">
               <div class="flex items-center gap-3">
                 <img :src="m.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + m.firstName" class="w-8 h-8 rounded-full shadow-sm" />
                 <div>
-                  <p class="text-sm font-bold text-slate-800">{{ m.firstName }} {{ m.lastName }}</p>
-                  <p class="text-xs text-slate-500">{{ m.email }}</p>
+                  <p class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ m.firstName }} {{ m.lastName }}</p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">{{ m.email }}</p>
                 </div>
               </div>
               <div class="flex items-center gap-3">
-                <span class="text-xs font-semibold px-2 py-0.5 border border-slate-200 bg-slate-50 text-slate-600 rounded">
+                <span class="text-xs font-semibold px-2 py-0.5 border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">
                   {{ m.role }}
                 </span>
                 <button v-if="m.id !== currentUserId" @click="removeMember(m.id)" class="text-xs font-bold text-red-500 hover:text-red-600 hover:underline">
@@ -106,15 +106,15 @@
       </div>
 
       <!-- Danger Zone -->
-      <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
-        <div class="p-6 border-b border-red-100 bg-red-50/30">
+      <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-red-200 dark:border-red-900 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-red-100 dark:border-red-900 bg-red-50/30 dark:bg-red-950/30">
           <h2 class="text-lg font-bold text-red-800">Danger Zone</h2>
           <p class="text-xs text-red-600/80">Permanent or sweeping changes to project storage.</p>
         </div>
         <div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div class="space-y-1">
-            <h3 class="text-sm font-bold text-slate-800">Archive / Delete Project</h3>
-            <p class="text-xs text-slate-500">Archiving locks the board, while soft-deleting relocates issues into the Project Trash Bin.</p>
+            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Archive / Delete Project</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Archiving locks the board, while soft-deleting relocates issues into the Project Trash Bin.</p>
           </div>
           <div class="flex gap-3">
             <button @click="archiveProject" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-semibold transition">

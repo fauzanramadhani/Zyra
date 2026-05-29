@@ -56,20 +56,20 @@ onUnmounted(() => {
         <div
           role="dialog"
           aria-modal="true"
-          class="fixed inset-y-0 z-[100] w-full flex flex-col bg-white shadow-2xl border-slate-200 overflow-hidden"
+          class="fixed inset-y-0 z-[100] w-full flex flex-col bg-white dark:bg-zyra-gray-darkCard shadow-2xl border-slate-200 dark:border-zyra-gray-darkBorder overflow-hidden"
           :class="[
             width,
             side === 'right' ? 'right-0 border-l' : 'left-0 border-r'
           ]"
         >
           <!-- Header -->
-          <div v-if="title || $slots.header" class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex-shrink-0">
+          <div v-if="title || $slots.header" class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-zyra-gray-darkBorder bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
             <slot name="header">
-              <h2 class="text-base font-bold text-slate-800">{{ title }}</h2>
+              <h2 class="text-base font-bold text-slate-800 dark:text-white">{{ title }}</h2>
             </slot>
             <button
               @click="close"
-              class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"
+              class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition"
               aria-label="Close"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -82,7 +82,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Footer -->
-          <div v-if="$slots.footer" class="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex-shrink-0">
+          <div v-if="$slots.footer" class="px-6 py-4 border-t border-slate-200 dark:border-zyra-gray-darkBorder bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
             <slot name="footer" :close="close" />
           </div>
         </div>

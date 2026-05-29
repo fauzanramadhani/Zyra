@@ -1,10 +1,10 @@
 <template>
-  <div class="flex-grow p-6 flex flex-col h-screen overflow-hidden text-[#172B4D]">
+  <div class="flex-grow p-6 flex flex-col h-screen overflow-hidden text-[#172B4D] dark:text-slate-200">
     
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-xl font-bold text-slate-800">{{ projectStore.currentProject?.name || 'Project' }} Backlog</h1>
+        <h1 class="text-xl font-bold text-slate-800 dark:text-white">{{ projectStore.currentProject?.name || 'Project' }} Backlog</h1>
         <p class="text-xs text-slate-400">Plan work, schedule sprints, and organize your product backlog</p>
       </div>
 
@@ -20,10 +20,10 @@
     <div class="flex-grow overflow-y-auto space-y-6 pr-1">
       
       <!-- Sprints Section -->
-      <div v-for="sprint in sprints" :key="sprint.id" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-5 py-4 bg-slate-50 border-b border-gray-200 flex justify-between items-center flex-wrap gap-2">
+      <div v-for="sprint in sprints" :key="sprint.id" class="bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-zyra-gray-darkBorder overflow-hidden">
+        <div class="px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-zyra-gray-darkBorder flex justify-between items-center flex-wrap gap-2">
           <div class="flex items-center gap-3">
-            <h3 class="font-bold text-sm text-slate-800">{{ sprint.name }}</h3>
+            <h3 class="font-bold text-sm text-slate-800 dark:text-white">{{ sprint.name }}</h3>
             <span
               class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
               :class="sprintStatusClass(sprint.status)"
@@ -54,7 +54,7 @@
         </div>
 
         <!-- Issues List inside Sprint -->
-        <div class="divide-y divide-gray-150 p-2 min-h-[50px] bg-slate-50/20">
+        <div class="divide-y divide-gray-150 dark:divide-slate-700 p-2 min-h-[50px] bg-slate-50/20 dark:bg-slate-800/20">
           <div v-if="!sprint.issues || sprint.issues.length === 0" class="py-4 text-center text-xs text-slate-400">
             Drag issues here or use the selector to assign tasks to this sprint
           </div>
@@ -62,21 +62,21 @@
           <div
             v-for="issue in sprint.issues"
             :key="issue.id"
-            class="flex justify-between items-center p-3 bg-white hover:bg-slate-50 transition border border-transparent rounded-lg mb-1 last:mb-0 shadow-sm"
+            class="flex justify-between items-center p-3 bg-white dark:bg-zyra-gray-darkCard hover:bg-slate-50 dark:hover:bg-slate-700 transition border border-transparent dark:border-slate-700 rounded-lg mb-1 last:mb-0 shadow-sm"
           >
             <div class="flex items-center gap-3 min-w-0">
               <span class="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-500 font-extrabold text-[8px] tracking-wider">
                 {{ issue.type }}
               </span>
               <span class="text-xs font-bold text-slate-400 uppercase tracking-wide flex-shrink-0">{{ issue.key }}</span>
-              <p class="text-xs font-semibold text-slate-700 truncate max-w-[400px]">{{ issue.summary }}</p>
+              <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[400px]">{{ issue.summary }}</p>
             </div>
 
             <div class="flex items-center gap-3 flex-shrink-0">
               <!-- Reassign Sprint dropdown -->
               <select
                 @change="reassignIssueSprint(issue.id, $event)"
-                class="border border-gray-200 rounded px-2 py-0.5 text-[10px] bg-white outline-none"
+                class="border border-gray-200 dark:border-slate-600 rounded px-2 py-0.5 text-[10px] bg-white dark:bg-slate-800 dark:text-slate-200 outline-none"
               >
                 <option :value="sprint.id" selected>{{ sprint.name }}</option>
                 <option value="backlog">Backlog</option>
@@ -88,13 +88,13 @@
       </div>
 
       <!-- Backlog Section -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-zyra-gray-darkBorder overflow-hidden">
         <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
           <h3 class="font-bold text-sm">{{ projectStore.currentProject?.name || 'Product' }} Backlog</h3>
           <span class="text-xs text-slate-400">{{ backlogIssues.length }} issues in backlog</span>
         </div>
 
-        <div class="divide-y divide-gray-150 p-2">
+        <div class="divide-y divide-gray-150 dark:divide-slate-700 p-2">
           <div v-if="backlogIssues.length === 0" class="py-12 text-center text-xs text-slate-400">
             No issues found in backlog. Create cards using the board view.
           </div>
@@ -102,20 +102,20 @@
           <div
             v-for="issue in backlogIssues"
             :key="issue.id"
-            class="flex justify-between items-center p-3 bg-white hover:bg-slate-50 transition border border-transparent rounded-lg mb-1 last:mb-0 shadow-sm"
+            class="flex justify-between items-center p-3 bg-white dark:bg-zyra-gray-darkCard hover:bg-slate-50 dark:hover:bg-slate-700 transition border border-transparent dark:border-slate-700 rounded-lg mb-1 last:mb-0 shadow-sm"
           >
             <div class="flex items-center gap-3 min-w-0">
               <span class="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-500 font-extrabold text-[8px] tracking-wider">
                 {{ issue.type }}
               </span>
               <span class="text-xs font-bold text-slate-400 uppercase tracking-wide flex-shrink-0">{{ issue.key }}</span>
-              <p class="text-xs font-semibold text-slate-700 truncate max-w-[400px]">{{ issue.summary }}</p>
+              <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[400px]">{{ issue.summary }}</p>
             </div>
 
             <div class="flex items-center gap-3 flex-shrink-0">
               <select
                 @change="reassignIssueSprint(issue.id, $event)"
-                class="border border-gray-200 rounded px-2 py-0.5 text-[10px] bg-white outline-none"
+                class="border border-gray-200 dark:border-slate-600 rounded px-2 py-0.5 text-[10px] bg-white dark:bg-slate-800 dark:text-slate-200 outline-none"
               >
                 <option value="backlog" selected>Backlog</option>
                 <option v-for="s in sprints" :key="s.id" :value="s.id">{{ s.name }}</option>
@@ -132,7 +132,7 @@
       <form @submit.prevent="completeSprint" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1.5">Move incomplete issues to</label>
-          <select v-model="targetSprintId" class="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white outline-none">
+          <select v-model="targetSprintId" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 outline-none">
             <option value="null">Backlog</option>
             <option v-for="s in futureSprints" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
@@ -148,12 +148,12 @@
     <AppDialog v-model="showCreateSprintModal" title="Create New Sprint" size="sm">
       <form @submit.prevent="createSprint" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Sprint Name</label>
-          <input type="text" v-model="newSprintName" required placeholder="e.g. PHX Sprint 2" maxlength="80" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-zyra-primary outline-none" />
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Sprint Name</label>
+          <input type="text" v-model="newSprintName" required placeholder="e.g. PHX Sprint 2" maxlength="80" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-zyra-primary outline-none" />
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Goal / Description</label>
-          <textarea v-model="newSprintGoal" rows="2" placeholder="e.g. Finalize login page styles" maxlength="500" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-zyra-primary outline-none"></textarea>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Goal / Description</label>
+          <textarea v-model="newSprintGoal" rows="2" placeholder="e.g. Finalize login page styles" maxlength="500" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-zyra-primary outline-none"></textarea>
         </div>
       </form>
       <template #footer="{ close }">

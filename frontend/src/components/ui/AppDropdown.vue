@@ -73,7 +73,7 @@ onUnmounted(() => {
         ref="menuRef"
         tabindex="-1"
         role="menu"
-        class="absolute z-50 mt-1.5 py-1.5 bg-white rounded-xl border border-slate-200 shadow-lg outline-none overflow-hidden"
+        class="absolute z-50 mt-1.5 py-1.5 bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder shadow-lg outline-none overflow-hidden"
         :class="[width, align === 'right' ? 'right-0' : 'left-0']"
       >
         <slot :close="close" />

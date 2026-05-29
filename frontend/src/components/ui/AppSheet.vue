@@ -53,20 +53,20 @@ onUnmounted(() => {
         v-if="modelValue"
         role="dialog"
         aria-modal="true"
-        class="fixed z-[100] left-0 right-0 bg-white shadow-2xl border-slate-200 rounded-t-2xl max-h-[85vh] flex flex-col overflow-hidden"
+        class="fixed z-[100] left-0 right-0 bg-white dark:bg-zyra-gray-darkCard shadow-2xl border-slate-200 dark:border-zyra-gray-darkBorder rounded-t-2xl max-h-[85vh] flex flex-col overflow-hidden"
         :class="[side === 'bottom' ? 'bottom-0 border-t' : 'top-0 border-b rounded-t-none rounded-b-2xl']"
       >
         <!-- Drag handle -->
         <div class="flex justify-center py-2 flex-shrink-0">
-          <div class="w-10 h-1 rounded-full bg-slate-300"></div>
+          <div class="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></div>
         </div>
 
         <!-- Header -->
         <div v-if="title || $slots.header" class="px-6 pb-3 flex items-center justify-between flex-shrink-0">
           <slot name="header">
-            <h2 class="text-base font-bold text-slate-800">{{ title }}</h2>
+            <h2 class="text-base font-bold text-slate-800 dark:text-white">{{ title }}</h2>
           </slot>
-          <button @click="close" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition" aria-label="Close">
+          <button @click="close" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" aria-label="Close">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
@@ -77,7 +77,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Footer -->
-        <div v-if="$slots.footer" class="px-6 py-4 border-t border-slate-200 flex-shrink-0">
+        <div v-if="$slots.footer" class="px-6 py-4 border-t border-slate-200 dark:border-zyra-gray-darkBorder flex-shrink-0">
           <slot name="footer" :close="close" />
         </div>
       </div>

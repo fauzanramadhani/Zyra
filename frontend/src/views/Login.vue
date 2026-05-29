@@ -55,7 +55,7 @@
       </form>
 
       <!-- Footer links -->
-      <div class="mt-8 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
+      <div class="mt-8 pt-6 border-t border-slate-200 text-center text-xs text-slate-500 dark:text-slate-400">
         <p>
           Don't have an account yet?
           <router-link to="/register" class="text-zyra-primary font-bold hover:underline">Create an Account</router-link>

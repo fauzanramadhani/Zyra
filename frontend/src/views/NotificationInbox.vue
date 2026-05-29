@@ -1,20 +1,20 @@
 <template>
-  <div class="min-h-screen bg-slate-50 py-6 md:py-10 px-4 md:px-6 font-sans">
+  <div class="min-h-screen bg-slate-50 dark:bg-zyra-gray-darkBg py-6 md:py-10 px-4 md:px-6 font-sans">
     <div class="max-w-4xl mx-auto space-y-6 md:space-y-8">
       <!-- Header -->
-      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-6 border-b border-slate-200">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-6 border-b border-slate-200 dark:border-zyra-gray-darkBorder">
         <div>
           <router-link to="/workspace" class="text-sm font-semibold text-orange-500 hover:underline flex items-center gap-1">
             <span class="text-xs">&larr;</span> Back to Workspace
           </router-link>
-          <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mt-2 tracking-tight">Notification Center</h1>
-          <p class="text-sm text-slate-500 mt-1">Review active updates, task assignments, and workspace invitations.</p>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white mt-2 tracking-tight">Notification Center</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Review active updates, task assignments, and workspace invitations.</p>
         </div>
         <div class="flex items-center gap-3">
           <button @click="markAllAsRead" class="text-sm font-semibold text-slate-600 hover:text-slate-800 hover:underline">
             Mark all as read
           </button>
-          <button @click="fetchNotifications(false)" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition">
+          <button @click="fetchNotifications(false)" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">
             Refresh
           </button>
         </div>
@@ -38,13 +38,13 @@
           <span>📨</span> Pending Organization & Workspace Invites
         </h2>
         <div class="grid grid-cols-1 gap-4">
-          <div v-for="inv in userInvitations" :key="inv.id" class="p-5 bg-white border border-orange-200 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-pulse-subtle">
+          <div v-for="inv in userInvitations" :key="inv.id" class="p-5 bg-white dark:bg-zyra-gray-darkCard border border-orange-200 dark:border-orange-800 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-pulse-subtle">
             <div class="space-y-1">
               <p class="text-sm font-extrabold text-slate-800">
                 {{ inv.sender?.firstName }} {{ inv.sender?.lastName }} invited you to join workspace
                 <span class="text-orange-600">"{{ inv.workspace?.name }}"</span>
               </p>
-              <p class="text-xs text-slate-500">Role: {{ inv.role }} &bull; Expires: {{ formatDate(inv.expiresAt) }}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Role: {{ inv.role }} &bull; Expires: {{ formatDate(inv.expiresAt) }}</p>
             </div>
             <div class="flex items-center gap-3">
               <button @click="acceptInvite(inv.id)" :disabled="actioningInvite === inv.id" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition shadow-sm disabled:opacity-50">
@@ -59,27 +59,27 @@
       </div>
 
       <!-- Notifications List -->
-      <div v-if="filteredNotifications.length === 0" class="bg-white rounded-xl border border-slate-200 p-12 text-center flex flex-col items-center justify-center space-y-3">
+      <div v-if="filteredNotifications.length === 0" class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder p-12 text-center flex flex-col items-center justify-center space-y-3">
         <span class="text-5xl">🔔</span>
         <h3 class="text-lg font-bold text-slate-700">Inbox is Clean</h3>
         <p class="text-sm text-slate-400 max-w-sm">No new notifications here. Nice work!</p>
       </div>
 
       <div v-else class="space-y-4">
-        <div class="divide-y divide-slate-150 border border-slate-200 bg-white rounded-xl overflow-hidden shadow-sm">
+        <div class="divide-y divide-slate-150 dark:divide-slate-700 border border-slate-200 dark:border-zyra-gray-darkBorder bg-white dark:bg-zyra-gray-darkCard rounded-xl overflow-hidden shadow-sm">
           <div
             v-for="notif in filteredNotifications"
             :key="notif.id"
             class="p-5 flex items-start justify-between gap-4 transition"
-            :class="notif.read ? 'bg-white opacity-70' : 'bg-orange-50/10 border-l-4 border-orange-500'"
+            :class="notif.read ? 'bg-white dark:bg-transparent opacity-70' : 'bg-orange-50/10 dark:bg-orange-500/5 border-l-4 border-orange-500'"
           >
             <div class="flex items-start gap-3">
               <span class="text-xl mt-0.5">{{ getTypeIcon(notif.type) }}</span>
               <div class="space-y-1">
-                <p class="text-sm font-bold text-slate-800" :class="notif.read ? 'font-semibold' : 'font-extrabold'">
+                <p class="text-sm font-bold text-slate-800 dark:text-slate-200" :class="notif.read ? 'font-semibold' : 'font-extrabold'">
                   {{ notif.title }}
                 </p>
-                <p class="text-sm text-slate-600">{{ notif.message }}</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300">{{ notif.message }}</p>
                 <p class="text-[10px] text-slate-400 mt-1">{{ formatDate(notif.createdAt) }}</p>
               </div>
             </div>
@@ -88,7 +88,7 @@
               <button v-if="!notif.read" @click="markAsRead(notif.id)" class="text-xs font-bold text-orange-500 hover:underline">
                 Mark Read
               </button>
-              <button @click="deleteNotification(notif.id)" class="text-slate-400 hover:text-red-500 p-1 rounded hover:bg-slate-50 transition" title="Delete notification">
+              <button @click="deleteNotification(notif.id)" class="text-slate-400 hover:text-red-500 p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-700 transition" title="Delete notification">
                 &times;
               </button>
             </div>

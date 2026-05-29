@@ -98,18 +98,18 @@ onUnmounted(() => {
             :aria-labelledby="title ? 'dialog-title' : undefined"
             :aria-describedby="description ? 'dialog-desc' : undefined"
             tabindex="-1"
-            class="relative w-full bg-white rounded-xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden outline-none"
+            class="relative w-full bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-2xl border border-slate-200 dark:border-zyra-gray-darkBorder flex flex-col overflow-hidden outline-none"
             :class="sizeClasses[size]"
           >
             <!-- Loading overlay -->
-            <div v-if="loading" class="absolute inset-0 bg-white/70 z-10 flex items-center justify-center rounded-xl">
+            <div v-if="loading" class="absolute inset-0 bg-white/70 dark:bg-slate-900/70 z-10 flex items-center justify-center rounded-xl">
               <div class="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent"></div>
             </div>
 
             <!-- Header -->
             <div v-if="title || $slots.header" class="px-6 pt-5 pb-3">
               <slot name="header">
-                <h2 v-if="title" id="dialog-title" class="text-lg font-bold text-slate-800">{{ title }}</h2>
+                <h2 v-if="title" id="dialog-title" class="text-lg font-bold text-slate-800 dark:text-white">{{ title }}</h2>
                 <p v-if="description" id="dialog-desc" class="text-xs text-slate-500 mt-1">{{ description }}</p>
               </slot>
             </div>
@@ -120,7 +120,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Footer -->
-            <div v-if="$slots.footer" class="px-6 pb-5 pt-3 flex justify-end gap-2 border-t border-slate-100">
+            <div v-if="$slots.footer" class="px-6 pb-5 pt-3 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-700">
               <slot name="footer" :close="close" />
             </div>
           </div>
