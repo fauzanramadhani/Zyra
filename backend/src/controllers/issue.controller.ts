@@ -3,6 +3,7 @@ import prisma from '../db';
 import { sendSuccess, sendCreated, sendError } from '../utils/response';
 import { AuthenticatedRequest } from '../types';
 import { emitToProject } from '../services/websocket.service';
+import { dispatchAutomationEvent } from '../services/automation.engine';
 
 // ─── Fractional Indexing Helpers ──────────────────────────────────────────────
 
@@ -217,6 +218,7 @@ export async function createIssue(req: AuthenticatedRequest, res: Response) {
     });
 
     emitToProject(projectId, 'issue:created', issue);
+    dispatchAutomationEvent('issue_created', { projectId, userId, issueId: issue.id, issue });
     return sendCreated(res, 'Issue created successfully', issue);
   } catch (error: any) {
     console.error('Create issue error:', error);
@@ -354,6 +356,30 @@ export async function updateIssue(req: AuthenticatedRequest, res: Response) {
     }
 
     emitToProject(updated.projectId, 'issue:updated', updated);
+
+    // Dispatch automation events
+    if (Object.keys(changes).length > 0) {
+      dispatchAutomationEvent('issue_updated', { projectId: updated.projectId, userId, issueId: updated.id, issue: updated, changes });
+    }
+    if (changes.statusId) {
+      dispatchAutomationEvent('issue_status_changed', {
+        projectId: updated.projectId, userId, issueId: updated.id, issue: updated,
+        fromStatusId: changes.statusId.from, toStatusId: changes.statusId.to,
+      });
+    }
+    if (changes.assigneeId) {
+      dispatchAutomationEvent('issue_assigned', {
+        projectId: updated.projectId, userId, issueId: updated.id, issue: updated,
+        fromAssigneeId: changes.assigneeId.from, toAssigneeId: changes.assigneeId.to,
+      });
+    }
+    if (changes.priority) {
+      dispatchAutomationEvent('issue_priority_changed', {
+        projectId: updated.projectId, userId, issueId: updated.id, issue: updated,
+        fromPriority: changes.priority.from, toPriority: changes.priority.to,
+      });
+    }
+
     return sendSuccess(res, 'Issue updated successfully', updated);
   } catch (error: any) {
     console.error('Update issue error:', error);
@@ -423,6 +449,12 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
             toStatusId: statusId,
             issue: rebalanced,
           });
+          if (original.statusId !== statusId) {
+            dispatchAutomationEvent('issue_status_changed', {
+              projectId: rebalanced.projectId, userId, issueId, issue: rebalanced,
+              fromStatusId: original.statusId, toStatusId: statusId,
+            });
+          }
           return sendSuccess(res, 'Issue moved and column rebalanced', rebalanced);
         }
       }
@@ -448,6 +480,13 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
       toStatusId: statusId,
       issue: updated,
     });
+
+    if (original.statusId !== statusId) {
+      dispatchAutomationEvent('issue_status_changed', {
+        projectId: updated.projectId, userId, issueId, issue: updated,
+        fromStatusId: original.statusId, toStatusId: statusId,
+      });
+    }
 
     return sendSuccess(res, 'Issue moved successfully', updated);
   } catch (error: any) {
@@ -476,6 +515,7 @@ export async function deleteIssue(req: AuthenticatedRequest, res: Response) {
     });
 
     emitToProject(issue.projectId, 'issue:deleted', { issueId });
+    dispatchAutomationEvent('issue_deleted', { projectId: issue.projectId, userId, issueId, issue });
     return sendSuccess(res, 'Issue soft-deleted successfully');
   } catch (error: any) {
     console.error('Delete issue error:', error);

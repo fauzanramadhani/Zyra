@@ -42,6 +42,10 @@ model User {
   teamMembers      TeamMember[]
   userRoles        UserRole[]
   sessions         Session[]
+  workLogs         WorkLog[]
+  watchers         IssueWatcher[]
+  savedFilters     SavedFilter[]
+  estimationVotes  EstimationVote[]
 }
 
 // Workspaces
@@ -219,6 +223,10 @@ model Project {
   mappings    ImportMapping[]
   labels      Label[]
   statuses    Status[]
+  releases    Release[]
+  automationRules AutomationRule[]
+  issueTemplates  IssueTemplate[]
+  savedFilters    SavedFilter[]
 
   @@unique([workspaceId, key])
 }
@@ -252,6 +260,7 @@ model Sprint {
 
   project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issues    Issue[]
+  estimationSessions EstimationSession[]
 }
 
 model Board {
@@ -364,6 +373,8 @@ model Issue {
   // Issue linking (blocks / is blocked by / relates to)
   outwardLinks IssueLink[] @relation("OutwardLinks")
   inwardLinks  IssueLink[] @relation("InwardLinks")
+  workLogs     WorkLog[]
+  watchers     IssueWatcher[]
 
   @@index([statusId, order])
 }
@@ -505,4 +516,173 @@ model ImportError {
   createdAt    DateTime  @default(now())
 
   job          ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// NEW FEATURES
+// ============================================
+
+// --- Time Tracking / Work Logs ---
+model WorkLog {
+  id          String   @id @default(uuid())
+  issueId     String
+  userId      String
+  timeSpent   Int      // Minutes
+  description String?
+  loggedAt    DateTime @default(now())
+  startedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// --- Issue Watchers ---
+model IssueWatcher {
+  id        String   @id @default(uuid())
+  issueId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issueId, userId])
+}
+
+// --- Saved Filters ---
+model SavedFilter {
+  id          String   @id @default(uuid())
+  name        String
+  projectId   String
+  userId      String
+  filters     String   // JSON: { status, priority, type, assignee, sprint, labels, search, dueDateRange }
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// --- Release / Version Management ---
+model Release {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  status      String    @default("UNRELEASED") // "UNRELEASED", "RELEASED", "ARCHIVED"
+  releaseDate DateTime?
+  projectId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues      ReleaseIssue[]
+}
+
+model ReleaseIssue {
+  id        String   @id @default(uuid())
+  releaseId String
+  issueId   String
+  createdAt DateTime @default(now())
+
+  release   Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@unique([releaseId, issueId])
+}
+
+// --- Workflow Automation Rules ---
+model AutomationRule {
+  id             String    @id @default(uuid())
+  name           String
+  projectId      String
+  enabled        Boolean   @default(true)
+  triggerType    String    // event: issue_created, issue_updated, issue_status_changed, etc.
+  triggerConfig  String?   // JSON: { fromStatusId, toStatusId, toAssigneeId, etc. }
+  conditions     String?   // JSON: [{ field, operator, value }]
+  conditionLogic String    @default("AND")  // "AND" | "OR"
+  actions        String    // JSON: [{ type: "change_status"|"assign_user"|..., params: {} }]
+  executionCount Int       @default(0)
+  failureCount   Int       @default(0)
+  lastTriggeredAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  executions     AutomationExecution[]
+
+  @@index([projectId])
+  @@index([enabled])
+  @@index([triggerType])
+}
+
+// --- Automation Execution Logs ---
+model AutomationExecution {
+  id              String    @id @default(uuid())
+  ruleId          String
+  status          String    // "running" | "success" | "failed"
+  triggerEvent    String
+  triggerPayload  String?   // JSON snapshot of context
+  triggeredBy     String?
+  actionsExecuted Int       @default(0)
+  actionResults   String?   // JSON: [{ actionType, success, message, duration }]
+  errorMessage    String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  duration        Int?
+
+  rule            AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// --- Issue Templates ---
+model IssueTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  projectId   String
+  type        String   // "STORY", "TASK", "BUG", "EPIC"
+  summary     String?
+  description String?
+  priority    String?
+  labels      String?  // JSON array of label IDs
+  storyPoints Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// --- Planning Poker / Estimation Sessions ---
+model EstimationSession {
+  id          String   @id @default(uuid())
+  sprintId    String
+  status      String   @default("ACTIVE") // "ACTIVE", "COMPLETED"
+  currentIssueId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sprint      Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  votes       EstimationVote[]
+}
+
+model EstimationVote {
+  id          String   @id @default(uuid())
+  sessionId   String
+  issueId     String
+  userId      String
+  value       Float?   // null = not voted yet
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  session     EstimationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, issueId, userId])
 }

@@ -1,17 +1,17 @@
 <template>
-  <div class="p-8 bg-slate-50 dark:bg-zyra-gray-darkBg min-h-screen space-y-8 font-sans">
+  <div class="flex-grow p-3 sm:p-4 md:p-6 flex flex-col h-screen overflow-hidden text-[#172B4D] dark:text-slate-200">
     <!-- Header -->
-    <div class="flex items-center justify-between pb-6 border-b border-slate-200 dark:border-zyra-gray-darkBorder">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 md:pb-6 border-b border-slate-200 dark:border-zyra-gray-darkBorder">
       <div>
-        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Trash & Recycle Bin</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and restore soft-deleted or archived issues, boards, sprints, and comments inside this workspace.</p>
+        <h1 class="text-xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Trash &amp; Recycle Bin</h1>
+        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">Review and restore soft-deleted or archived issues, boards, sprints, and comments inside this workspace.</p>
       </div>
-      <button @click="fetchTrash" class="px-3.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+      <button @click="fetchTrash" class="px-3.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-xs md:text-sm font-bold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition flex-shrink-0">
         Refresh
       </button>
     </div>
 
-    <!-- Empty State -->
+    <div class="flex-grow overflow-y-auto space-y-6 md:space-y-8 pb-4">
     <div v-if="isEmpty" class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder shadow-sm p-12 text-center flex flex-col items-center justify-center space-y-3">
       <span class="text-5xl">🗑️</span>
       <h3 class="text-lg font-bold text-slate-700">Trash Bin is Empty</h3>
@@ -26,7 +26,7 @@
           <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Soft-Deleted & Archived Issues</h2>
         </div>
         <div class="divide-y divide-slate-150">
-          <div v-for="iss in issues" :key="iss.id" class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+          <div v-for="iss in issues" :key="iss.id" class="p-3 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
             <div>
               <div class="flex items-center gap-2">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">{{ iss.key }}</span>
@@ -55,7 +55,7 @@
           <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Soft-Deleted & Archived Sprints</h2>
         </div>
         <div class="divide-y divide-slate-150">
-          <div v-for="spr in sprints" :key="spr.id" class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+          <div v-for="spr in sprints" :key="spr.id" class="p-3 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
             <div>
               <p class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ spr.name }}</p>
               <p class="text-xs text-slate-400 mt-1">Project: {{ spr.project?.name }} &bull; Goal: {{ spr.goal || 'None' }}</p>
@@ -78,7 +78,7 @@
           <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Soft-Deleted & Archived Boards</h2>
         </div>
         <div class="divide-y divide-slate-150">
-          <div v-for="bd in boards" :key="bd.id" class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+          <div v-for="bd in boards" :key="bd.id" class="p-3 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
             <div>
               <p class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ bd.name }}</p>
               <p class="text-xs text-slate-400 mt-1">Project: {{ bd.project?.name }} &bull; Type: {{ bd.type }}</p>
@@ -101,7 +101,7 @@
           <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Soft-Deleted & Archived Comments</h2>
         </div>
         <div class="divide-y divide-slate-150">
-          <div v-for="c in comments" :key="c.id" class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+          <div v-for="c in comments" :key="c.id" class="p-3 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
             <div>
               <p class="text-sm text-slate-700 line-clamp-2">{{ c.body }}</p>
               <p class="text-xs text-slate-400 mt-1">Issue Context ID: {{ c.issueId }}</p>
@@ -116,6 +116,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
 

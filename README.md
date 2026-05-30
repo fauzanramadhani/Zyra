@@ -90,6 +90,27 @@ An open-source alternative to Jira for project management and issue tracking. Bu
 
 ### Analytics
 - Project-level analytics dashboard
+- Status and priority distribution gauges
+- Developer workload charts
+- Sprint burndown and velocity tracking
+
+### Automation (Workflow Rules)
+- No-code **when → if → then** rule engine
+- 9 trigger event types (issue created, updated, status changed, assigned, priority changed, deleted; sprint started, completed, created)
+- 6 condition fields with 8 operators (equals, contains, greater than, etc.)
+- 12 action types (change status, assign user, add label, add comment, send notification, move sprint, set priority, set story points, create subtask, archive issue, unassign, remove label)
+- BullMQ-backed async execution with retry
+- Dry-run testing before enabling rules
+- Real-time execution logs with per-action results
+- Sprint-level batch mode (e.g. change status on all sprint issues when sprint starts)
+
+### Releases
+- Version tracking with status lifecycle (Planned → In Progress → Released → Archived)
+- Release date tracking and issue assignment to releases
+
+### Issue Templates
+- Predefined issue templates (type, priority, summary, description, story points)
+- Speeds up repetitive issue creation
 
 ### CSV Import
 - Upload CSV files with column mapping preview

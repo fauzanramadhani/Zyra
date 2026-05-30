@@ -12,6 +12,7 @@ dotenv.config();
 import router from './routes';
 import { initSocketIO } from './services/websocket.service';
 import { startImportWorker } from './workers/import.worker';
+import { startAutomationWorker } from './workers/automation.worker';
 import { errorHandler } from './middleware/error.middleware';
 
 const app = express();
@@ -62,6 +63,10 @@ initSocketIO(io);
 // Start BullMQ Background Processing Workers
 const importWorker = startImportWorker();
 console.log('BullMQ CSV Importer background worker initialized');
+
+// Start Automation Worker
+startAutomationWorker();
+console.log('BullMQ Automation background worker initialized');
 
 // Initialize issue ordering: assign sequential orders to existing issues that are unordered
 async function initializeIssueOrdering() {

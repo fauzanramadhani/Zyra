@@ -2,6 +2,18 @@ import { defineStore } from 'pinia';
 import api from '../services/api';
 import { joinProject, leaveProject } from '../services/socket';
 
+export interface ProjectMember {
+  id: string;
+  role: string;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl: string | null;
+  };
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -9,6 +21,7 @@ export interface Project {
   description?: string;
   leadId: string;
   boards: any[];
+  members?: ProjectMember[];
 }
 
 export interface BoardColumn {

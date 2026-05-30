@@ -19,6 +19,15 @@ import * as notificationController from '../controllers/notification.controller'
 import * as accountController from '../controllers/account.controller';
 import * as trashController from '../controllers/trash.controller';
 import * as issueLinkController from '../controllers/issueLink.controller';
+import * as worklogController from '../controllers/worklog.controller';
+import * as watcherController from '../controllers/watcher.controller';
+import * as filterController from '../controllers/filter.controller';
+import * as releaseController from '../controllers/release.controller';
+import * as automationController from '../controllers/automation.controller';
+import * as templateController from '../controllers/template.controller';
+import * as estimationController from '../controllers/estimation.controller';
+import * as bulkController from '../controllers/bulk.controller';
+import * as chartsController from '../controllers/charts.controller';
 
 const router = Router();
 
@@ -56,8 +65,15 @@ router.delete('/columns/:columnId', authenticateToken, boardController.deleteCol
 // --- Sprint Routes ---
 router.get('/projects/:projectId/sprints', authenticateToken, sprintController.listSprints);
 router.post('/projects/:projectId/sprints', authenticateToken, sprintController.createSprint);
+router.post('/projects/:projectId/sprints/reorder', authenticateToken, sprintController.reorderSprints);
 router.patch('/sprints/:sprintId', authenticateToken, sprintController.updateSprint);
+router.post('/sprints/:sprintId/start', authenticateToken, sprintController.startSprint);
 router.post('/sprints/:sprintId/complete', authenticateToken, sprintController.completeSprint);
+router.post('/sprints/:sprintId/reopen', authenticateToken, sprintController.reopenSprint);
+router.post('/sprints/:sprintId/archive', authenticateToken, sprintController.archiveSprint);
+router.post('/sprints/:sprintId/restore', authenticateToken, sprintController.restoreSprint);
+router.get('/sprints/:sprintId/stats', authenticateToken, sprintController.getSprintStats);
+router.delete('/sprints/:sprintId', authenticateToken, sprintController.deleteSprint);
 
 // --- Issue Routes ---
 router.get('/projects/:projectId/issues', authenticateToken, issueController.listIssues);
@@ -128,5 +144,68 @@ router.post(
 router.post('/projects/:projectId/imports/start', authenticateToken, importController.startImport);
 router.get('/imports/jobs/:jobId', authenticateToken, importController.getImportJobStatus);
 router.get('/imports/jobs', authenticateToken, importController.listImportJobs);
+
+// --- Work Log / Time Tracking Routes ---
+router.get('/issues/:issueId/worklogs', authenticateToken, worklogController.listWorkLogs);
+router.post('/issues/:issueId/worklogs', authenticateToken, worklogController.addWorkLog);
+router.patch('/worklogs/:logId', authenticateToken, worklogController.updateWorkLog);
+router.delete('/worklogs/:logId', authenticateToken, worklogController.deleteWorkLog);
+router.get('/issues/:issueId/time-summary', authenticateToken, worklogController.getIssueTimeSummary);
+
+// --- Watcher Routes ---
+router.get('/issues/:issueId/watchers', authenticateToken, watcherController.listWatchers);
+router.post('/issues/:issueId/watch', authenticateToken, watcherController.watchIssue);
+router.delete('/issues/:issueId/watch', authenticateToken, watcherController.unwatchIssue);
+router.get('/issues/:issueId/watching', authenticateToken, watcherController.isWatching);
+
+// --- Saved Filter Routes ---
+router.get('/projects/:projectId/filters', authenticateToken, filterController.listFilters);
+router.post('/projects/:projectId/filters', authenticateToken, filterController.createFilter);
+router.patch('/filters/:filterId', authenticateToken, filterController.updateFilter);
+router.delete('/filters/:filterId', authenticateToken, filterController.deleteFilter);
+
+// --- Release / Version Routes ---
+router.get('/projects/:projectId/releases', authenticateToken, releaseController.listReleases);
+router.post('/projects/:projectId/releases', authenticateToken, releaseController.createRelease);
+router.patch('/releases/:releaseId', authenticateToken, releaseController.updateRelease);
+router.delete('/releases/:releaseId', authenticateToken, releaseController.deleteRelease);
+router.post('/releases/:releaseId/issues', authenticateToken, releaseController.addIssuesToRelease);
+router.delete('/releases/:releaseId/issues/:issueId', authenticateToken, releaseController.removeIssueFromRelease);
+
+// --- Automation Rules Routes ---
+router.get('/projects/:projectId/automations', authenticateToken, automationController.listRules);
+router.post('/projects/:projectId/automations', authenticateToken, automationController.createRule);
+router.get('/projects/:projectId/automations/stats', authenticateToken, automationController.getStats);
+router.get('/projects/:projectId/automations/executions', authenticateToken, automationController.getExecutions);
+router.patch('/automations/:ruleId', authenticateToken, automationController.updateRule);
+router.delete('/automations/:ruleId', authenticateToken, automationController.deleteRule);
+router.post('/automations/:ruleId/toggle', authenticateToken, automationController.toggleRule);
+router.post('/automations/:ruleId/test', authenticateToken, automationController.testRule);
+
+// --- Issue Template Routes ---
+router.get('/projects/:projectId/templates', authenticateToken, templateController.listTemplates);
+router.post('/projects/:projectId/templates', authenticateToken, templateController.createTemplate);
+router.get('/templates/:templateId', authenticateToken, templateController.getTemplate);
+router.patch('/templates/:templateId', authenticateToken, templateController.updateTemplate);
+router.delete('/templates/:templateId', authenticateToken, templateController.deleteTemplate);
+
+// --- Planning Poker / Estimation Routes ---
+router.post('/sprints/:sprintId/estimation', authenticateToken, estimationController.createSession);
+router.get('/sprints/:sprintId/estimation', authenticateToken, estimationController.getActiveSession);
+router.patch('/estimation/:sessionId/current-issue', authenticateToken, estimationController.setCurrentIssue);
+router.post('/estimation/:sessionId/vote', authenticateToken, estimationController.submitVote);
+router.post('/estimation/:sessionId/reveal', authenticateToken, estimationController.revealVotes);
+router.post('/estimation/:sessionId/accept', authenticateToken, estimationController.acceptEstimation);
+router.post('/estimation/:sessionId/complete', authenticateToken, estimationController.completeSession);
+
+// --- Bulk Operations Routes ---
+router.post('/issues/bulk-update', authenticateToken, bulkController.bulkUpdateIssues);
+router.post('/issues/bulk-move-sprint', authenticateToken, bulkController.bulkMoveToSprint);
+router.post('/issues/bulk-delete', authenticateToken, bulkController.bulkDeleteIssues);
+router.post('/issues/bulk-labels', authenticateToken, bulkController.bulkAddLabels);
+
+// --- Charts (Burndown / Velocity) Routes ---
+router.get('/sprints/:sprintId/burndown', authenticateToken, chartsController.getBurndownData);
+router.get('/projects/:projectId/velocity', authenticateToken, chartsController.getVelocityData);
 
 export default router;

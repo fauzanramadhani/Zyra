@@ -1,324 +1,553 @@
 <template>
-  <div class="flex-grow p-6 flex flex-col h-screen overflow-hidden text-[#172B4D] dark:text-slate-200">
+  <div class="flex-grow flex flex-col h-screen overflow-hidden text-[#172B4D] dark:text-slate-200">
     
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h1 class="text-xl font-bold text-slate-800 dark:text-white">{{ projectStore.currentProject?.name || 'Project' }} Backlog</h1>
-        <p class="text-xs text-slate-400">Plan work, schedule sprints, and organize your product backlog</p>
+    <div class="flex-shrink-0 px-3 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4">
+      <div class="flex justify-between items-center mb-3 md:mb-4">
+        <div>
+          <h1 class="text-base md:text-xl font-bold text-slate-800 dark:text-white">Backlog</h1>
+          <p class="text-[10px] md:text-xs text-slate-400 dark:text-slate-500 mt-0.5 hidden sm:block">Plan sprints, prioritize work, and organize your product backlog</p>
+        </div>
+        <div class="flex items-center gap-1.5 md:gap-2">
+          <button
+            @click="showStatsDrawer = !showStatsDrawer"
+            class="px-2 md:px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition flex items-center gap-1.5"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span class="hidden sm:inline">Stats</span>
+          </button>
+          <button
+            @click="openCreateSprint"
+            class="px-3 md:px-4 py-2 bg-zyra-primary hover:bg-zyra-primary-hover text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span class="hidden sm:inline">Create Sprint</span>
+            <span class="sm:hidden">Sprint</span>
+          </button>
+        </div>
       </div>
 
-      <button
-        @click="showCreateSprintModal = true"
-        class="px-4 py-2 bg-zyra-primary hover:bg-zyra-primary-hover text-white text-sm font-bold rounded-lg shadow transition"
-      >
-        Create Sprint
-      </button>
+      <!-- Filter Bar -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="relative w-full sm:flex-grow sm:max-w-xs">
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search issues..."
+            class="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-zyra-primary transition min-h-[36px]"
+          />
+        </div>
+        <select v-model="filterType" class="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-2 bg-white dark:bg-slate-800 dark:text-slate-200 outline-none w-[calc(50%-4px)] sm:w-auto min-h-[36px]">
+          <option value="">All Types</option>
+          <option value="EPIC">Epic</option>
+          <option value="STORY">Story</option>
+          <option value="TASK">Task</option>
+          <option value="BUG">Bug</option>
+          <option value="SUBTASK">Subtask</option>
+        </select>
+        <select v-model="filterPriority" class="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-2 bg-white dark:bg-slate-800 dark:text-slate-200 outline-none w-[calc(50%-4px)] sm:w-auto min-h-[36px]">
+          <option value="">All Priorities</option>
+          <option value="HIGHEST">Highest</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+          <option value="LOWEST">Lowest</option>
+        </select>
+        <select v-model="filterAssignee" class="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-2 bg-white dark:bg-slate-800 dark:text-slate-200 outline-none w-full sm:w-auto min-h-[36px]">
+          <option value="">All Assignees</option>
+          <option value="unassigned">Unassigned</option>
+          <option v-for="a in assignees" :key="a.id" :value="a.id">{{ a.firstName }} {{ a.lastName }}</option>
+        </select>
+        <button
+          v-if="hasActiveFilters"
+          @click="clearFilters"
+          class="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition px-2 py-1"
+        >
+          Clear filters
+        </button>
+      </div>
     </div>
 
-    <!-- Main List Scroll Container -->
-    <div class="flex-grow overflow-y-auto space-y-6 pr-1">
+    <!-- Bulk Actions Bar -->
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-2"
+    >
+      <div v-if="selectedIssues.length > 0" class="flex-shrink-0 mx-6 mb-3 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl flex items-center gap-3 flex-wrap">
+        <span class="text-xs font-bold text-orange-700 dark:text-orange-300">{{ selectedIssues.length }} selected</span>
+        <select v-model="bulkSprintTarget" class="text-xs border border-orange-300 dark:border-orange-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 dark:text-slate-200 outline-none">
+          <option value="">Move to sprint...</option>
+          <option value="backlog">Backlog</option>
+          <option v-for="s in sprints" :key="s.id" :value="s.id">{{ s.name }}</option>
+        </select>
+        <button v-if="bulkSprintTarget" @click="bulkMoveToSprint" class="px-3 py-1.5 bg-orange-500 text-white text-xs font-bold rounded-lg hover:bg-orange-600 transition">Move</button>
+        <button @click="bulkDelete" class="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 transition ml-auto">Delete</button>
+        <button @click="selectedIssues = []" class="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition">Clear</button>
+      </div>
+    </Transition>
+
+    <!-- Main Scrollable Content -->
+    <div class="flex-grow overflow-y-auto px-3 md:px-6 pb-6 space-y-3 md:space-y-4">
       
-      <!-- Sprints Section -->
-      <div v-for="sprint in sprints" :key="sprint.id" class="bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-zyra-gray-darkBorder overflow-hidden">
-        <div class="px-5 py-4 bg-slate-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-zyra-gray-darkBorder flex justify-between items-center flex-wrap gap-2">
-          <div class="flex items-center gap-3">
-            <h3 class="font-bold text-sm text-slate-800 dark:text-white">{{ sprint.name }}</h3>
+      <!-- Sprint Sections -->
+      <div v-for="sprint in sortedSprints" :key="sprint.id" class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder shadow-sm transition-all duration-200">
+        <!-- Sprint Header -->
+        <div
+          class="px-4 py-3 min-h-[48px] flex items-center justify-between gap-3 cursor-pointer select-none"
+          :class="sprint.status === 'ACTIVE' ? 'bg-green-50/50 dark:bg-green-900/10 border-b border-green-100 dark:border-green-900/30' : 'bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700'"
+          @click="toggleCollapse(sprint.id)"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <svg
+              class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200 flex-shrink-0"
+              :class="{ '-rotate-90': collapsedSprints.has(sprint.id) }"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            ><polyline points="6 9 12 15 18 9"/></svg>
+
+            <h3 class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ sprint.name }}</h3>
+            
             <span
-              class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+              class="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
               :class="sprintStatusClass(sprint.status)"
-            >
-              {{ sprint.status }}
+            >{{ sprint.status }}</span>
+
+            <span v-if="sprint.goal" class="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[200px] hidden lg:inline">
+              {{ sprint.goal }}
             </span>
           </div>
 
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400 font-medium mr-2">
-              {{ sprint.issues?.length || 0 }} issues
+          <div class="flex items-center gap-2 flex-shrink-0" @click.stop>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              {{ (sprint.issues || []).length }} issues
             </span>
-            <button
-              v-if="sprint.status === 'ACTIVE'"
-              @click="openCompleteSprintModal(sprint)"
-              class="px-3 py-1 bg-zyra-primary hover:bg-zyra-primary-hover text-white text-xs font-bold rounded shadow transition"
-            >
-              Complete Sprint
-            </button>
-            <button
-              v-else-if="sprint.status === 'FUTURE'"
-              @click="startSprint(sprint.id)"
-              class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded shadow transition"
-            >
-              Start Sprint
-            </button>
+            <span v-if="sprint.startDate || sprint.endDate" class="text-[10px] text-slate-400 dark:text-slate-500 hidden md:inline">
+              {{ sprint.startDate ? formatDate(sprint.startDate) : '?' }} → {{ sprint.endDate ? formatDate(sprint.endDate) : '?' }}
+            </span>
+
+            <!-- Sprint Actions -->
+            <SprintActionsDropdown :sprint="sprint" @action="handleSprintAction(sprint, $event)" />
           </div>
         </div>
 
-        <!-- Issues List inside Sprint -->
-        <div class="divide-y divide-gray-150 dark:divide-slate-700 p-2 min-h-[50px] bg-slate-50/20 dark:bg-slate-800/20">
-          <div v-if="!sprint.issues || sprint.issues.length === 0" class="py-4 text-center text-xs text-slate-400">
-            Drag issues here or use the selector to assign tasks to this sprint
-          </div>
-
-          <div
-            v-for="issue in sprint.issues"
-            :key="issue.id"
-            class="flex justify-between items-center p-3 bg-white dark:bg-zyra-gray-darkCard hover:bg-slate-50 dark:hover:bg-slate-700 transition border border-transparent dark:border-slate-700 rounded-lg mb-1 last:mb-0 shadow-sm"
+        <!-- Sprint Issues (Draggable) -->
+        <div v-show="!collapsedSprints.has(sprint.id)">
+          <VueDraggable
+            v-model="sprint.issues"
+            group="backlog-issues"
+            :animation="200"
+            ghost-class="backlog-ghost"
+            drag-class="backlog-drag"
+            class="p-2 min-h-[48px] space-y-1"
+            @end="onDragEnd(sprint.id)"
           >
-            <div class="flex items-center gap-3 min-w-0">
-              <span class="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-500 font-extrabold text-[8px] tracking-wider">
-                {{ issue.type }}
-              </span>
-              <span class="text-xs font-bold text-slate-400 uppercase tracking-wide flex-shrink-0">{{ issue.key }}</span>
-              <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[400px]">{{ issue.summary }}</p>
-            </div>
-
-            <div class="flex items-center gap-3 flex-shrink-0">
-              <!-- Reassign Sprint dropdown -->
-              <select
-                @change="reassignIssueSprint(issue.id, $event)"
-                class="border border-gray-200 dark:border-slate-600 rounded px-2 py-0.5 text-[10px] bg-white dark:bg-slate-800 dark:text-slate-200 outline-none"
-              >
-                <option :value="sprint.id" selected>{{ sprint.name }}</option>
-                <option value="backlog">Backlog</option>
-                <option v-for="s in otherSprints(sprint.id)" :key="s.id" :value="s.id">{{ s.name }}</option>
-              </select>
-            </div>
+            <BacklogIssueCard
+              v-for="issue in filteredSprintIssues(sprint)"
+              :key="issue.id"
+              :issue="issue"
+              :selected="selectedIssues.includes(issue.id)"
+              @toggle-select="toggleSelect"
+            />
+          </VueDraggable>
+          <div v-if="filteredSprintIssues(sprint).length === 0" class="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500 italic">
+            {{ hasActiveFilters ? 'No issues match filters' : 'Drag issues here to plan this sprint' }}
           </div>
         </div>
       </div>
 
       <!-- Backlog Section -->
-      <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-zyra-gray-darkBorder overflow-hidden">
-        <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
-          <h3 class="font-bold text-sm">{{ projectStore.currentProject?.name || 'Product' }} Backlog</h3>
-          <span class="text-xs text-slate-400">{{ backlogIssues.length }} issues in backlog</span>
+      <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder shadow-sm overflow-hidden">
+        <div
+          class="px-4 py-3 bg-slate-800 dark:bg-slate-900 flex items-center justify-between cursor-pointer select-none"
+          @click="backlogCollapsed = !backlogCollapsed"
+        >
+          <div class="flex items-center gap-3">
+            <svg
+              class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200"
+              :class="{ '-rotate-90': backlogCollapsed }"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            ><polyline points="6 9 12 15 18 9"/></svg>
+            <h3 class="text-sm font-bold text-white">Backlog</h3>
+            <span class="text-[11px] text-slate-400 font-medium">{{ filteredBacklogIssues.length }} issues</span>
+          </div>
         </div>
 
-        <div class="divide-y divide-gray-150 dark:divide-slate-700 p-2">
-          <div v-if="backlogIssues.length === 0" class="py-12 text-center text-xs text-slate-400">
-            No issues found in backlog. Create cards using the board view.
-          </div>
-
-          <div
-            v-for="issue in backlogIssues"
-            :key="issue.id"
-            class="flex justify-between items-center p-3 bg-white dark:bg-zyra-gray-darkCard hover:bg-slate-50 dark:hover:bg-slate-700 transition border border-transparent dark:border-slate-700 rounded-lg mb-1 last:mb-0 shadow-sm"
+        <div v-show="!backlogCollapsed">
+          <VueDraggable
+            v-model="backlogIssues"
+            group="backlog-issues"
+            :animation="200"
+            ghost-class="backlog-ghost"
+            drag-class="backlog-drag"
+            class="p-2 min-h-[48px] space-y-1"
+            @end="onDragEnd(null)"
           >
-            <div class="flex items-center gap-3 min-w-0">
-              <span class="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-500 font-extrabold text-[8px] tracking-wider">
-                {{ issue.type }}
-              </span>
-              <span class="text-xs font-bold text-slate-400 uppercase tracking-wide flex-shrink-0">{{ issue.key }}</span>
-              <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[400px]">{{ issue.summary }}</p>
-            </div>
-
-            <div class="flex items-center gap-3 flex-shrink-0">
-              <select
-                @change="reassignIssueSprint(issue.id, $event)"
-                class="border border-gray-200 dark:border-slate-600 rounded px-2 py-0.5 text-[10px] bg-white dark:bg-slate-800 dark:text-slate-200 outline-none"
-              >
-                <option value="backlog" selected>Backlog</option>
-                <option v-for="s in sprints" :key="s.id" :value="s.id">{{ s.name }}</option>
-              </select>
-            </div>
+            <BacklogIssueCard
+              v-for="issue in filteredBacklogIssues"
+              :key="issue.id"
+              :issue="issue"
+              :selected="selectedIssues.includes(issue.id)"
+              @toggle-select="toggleSelect"
+            />
+          </VueDraggable>
+          <div v-if="filteredBacklogIssues.length === 0" class="px-4 py-8 text-center text-xs text-slate-400 dark:text-slate-500 italic">
+            {{ hasActiveFilters ? 'No issues match filters' : 'No issues in backlog. Create cards from the Board view.' }}
           </div>
         </div>
       </div>
-
     </div>
 
-    <!-- Complete Sprint Modal -->
-    <AppDialog v-model="showCompleteSprintModal" title="Complete Sprint" :description="`Complete: ${selectedSprint?.name}. Any open, incomplete issues will be automatically re-allocated.`" size="sm">
-      <form @submit.prevent="completeSprint" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1.5">Move incomplete issues to</label>
-          <select v-model="targetSprintId" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 outline-none">
-            <option value="null">Backlog</option>
-            <option v-for="s in futureSprints" :key="s.id" :value="s.id">{{ s.name }}</option>
-          </select>
-        </div>
-      </form>
-      <template #footer="{ close }">
-        <button type="button" @click="close" class="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-slate-600">Cancel</button>
-        <button @click="completeSprint" class="px-4 py-1.5 bg-zyra-primary text-white text-xs font-bold rounded hover:bg-zyra-primary-hover shadow-sm">Complete Sprint</button>
-      </template>
-    </AppDialog>
+    <!-- Sprint Stats Drawer -->
+    <AppDrawer v-model="showStatsDrawer" title="Sprint Statistics" side="right" width="max-w-md">
+      <div v-if="activeSprintStats" class="p-4">
+        <SprintStatsCard :stats="activeSprintStats" />
+      </div>
+      <div v-else class="p-6 text-center text-xs text-slate-400 dark:text-slate-500">
+        <p>No active sprint stats available.</p>
+        <p class="mt-1">Start a sprint to see statistics here.</p>
+      </div>
+    </AppDrawer>
 
-    <!-- Create Sprint Modal -->
-    <AppDialog v-model="showCreateSprintModal" title="Create New Sprint" size="sm">
-      <form @submit.prevent="createSprint" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Sprint Name</label>
-          <input type="text" v-model="newSprintName" required placeholder="e.g. PHX Sprint 2" maxlength="80" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-zyra-primary outline-none" />
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Goal / Description</label>
-          <textarea v-model="newSprintGoal" rows="2" placeholder="e.g. Finalize login page styles" maxlength="500" class="w-full border border-gray-300 dark:border-slate-600 rounded px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-zyra-primary outline-none"></textarea>
-        </div>
-      </form>
-      <template #footer="{ close }">
-        <button type="button" @click="close" class="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-slate-600">Cancel</button>
-        <button @click="createSprint" class="px-4 py-1.5 bg-zyra-primary text-white text-xs font-bold rounded hover:bg-zyra-primary-hover shadow-sm">Create</button>
-      </template>
-    </AppDialog>
+    <!-- Sprint Edit Dialog -->
+    <SprintEditDialog
+      v-model="showEditDialog"
+      :sprint="editingSprint"
+      @submit="handleSprintSubmit"
+    />
 
+    <!-- Sprint Complete Dialog -->
+    <SprintCompleteDialog
+      v-model="showCompleteDialog"
+      :sprint="completingSprint"
+      :sprints="sprints"
+      @complete="handleCompleteSprint"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watch } from 'vue';
+import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useProjectStore } from '../store/project';
-import AppDialog from '../components/ui/AppDialog.vue';
+import { VueDraggable } from 'vue-draggable-plus';
+import AppDrawer from '../components/ui/AppDrawer.vue';
+import BacklogIssueCard from '../components/backlog/BacklogIssueCard.vue';
+import SprintActionsDropdown from '../components/sprint/SprintActionsDropdown.vue';
+import SprintEditDialog from '../components/sprint/SprintEditDialog.vue';
+import SprintCompleteDialog from '../components/sprint/SprintCompleteDialog.vue';
+import SprintStatsCard from '../components/sprint/SprintStatsCard.vue';
 import api from '../services/api';
+import { socket, joinProject, leaveProject } from '../services/socket';
 
 export default defineComponent({
   name: 'BacklogPlanner',
-  components: { AppDialog },
+  components: { VueDraggable, AppDrawer, BacklogIssueCard, SprintActionsDropdown, SprintEditDialog, SprintCompleteDialog, SprintStatsCard },
   setup() {
     const route = useRoute();
     const projectStore = useProjectStore();
-
-    const sprints = ref<any[]>([]);
-    const backlogIssues = ref<any[]>([]);
-
-    // Sprint creation modal
-    const showCreateSprintModal = ref(false);
-    const newSprintName = ref('');
-    const newSprintGoal = ref('');
-
-    // Sprint complete modal
-    const showCompleteSprintModal = ref(false);
-    const selectedSprint = ref<any>(null);
-    const targetSprintId = ref('null');
-
     const projectId = computed(() => route.params.projectId as string);
 
-    const loadPlannerData = async () => {
-      if (!projectId.value) return;
+    // Data
+    const sprints = ref<any[]>([]);
+    const backlogIssues = ref<any[]>([]);
+    const assignees = ref<any[]>([]);
 
-      try {
-        // Fetch sprints
-        const sprintRes = await api.get(`/projects/${projectId.value}/sprints`);
-        if (sprintRes.data.success) {
-          sprints.value = sprintRes.data.data;
-        }
+    // UI State
+    const collapsedSprints = ref(new Set<string>());
+    const backlogCollapsed = ref(false);
+    const selectedIssues = ref<string[]>([]);
+    const bulkSprintTarget = ref('');
+    const showStatsDrawer = ref(false);
+    const activeSprintStats = ref<any>(null);
 
-        // Fetch backlog issues (issues with sprintId = null)
-        const issuesRes = await api.get(`/projects/${projectId.value}/issues`, {
-          params: { sprintId: 'null' },
-        });
-        if (issuesRes.data.success) {
-          backlogIssues.value = issuesRes.data.data;
-        }
-      } catch (err) {
-        console.error('Failed to load planner data:', err);
-      }
-    };
+    // Filters
+    const searchQuery = ref('');
+    const filterType = ref('');
+    const filterPriority = ref('');
+    const filterAssignee = ref('');
 
-    watch(projectId, loadPlannerData, { immediate: true });
+    // Dialogs
+    const showEditDialog = ref(false);
+    const editingSprint = ref<any>(null);
+    const showCompleteDialog = ref(false);
+    const completingSprint = ref<any>(null);
 
-    const createSprint = async () => {
-      try {
-        const response = await api.post(`/projects/${projectId.value}/sprints`, {
-          name: newSprintName.value,
-          goal: newSprintGoal.value,
-        });
+    const hasActiveFilters = computed(() => !!(searchQuery.value || filterType.value || filterPriority.value || filterAssignee.value));
 
-        if (response.data.success) {
-          showCreateSprintModal.value = false;
-          newSprintName.value = '';
-          newSprintGoal.value = '';
-          await loadPlannerData();
-        }
-      } catch (err) {
-        console.error('Failed to create sprint:', err);
-      }
-    };
-
-    const startSprint = async (sprintId: string) => {
-      try {
-        await api.patch(`/sprints/${sprintId}`, {
-          status: 'ACTIVE',
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-        });
-        await loadPlannerData();
-      } catch (err) {
-        console.error('Failed to start sprint:', err);
-      }
-    };
-
-    const openCompleteSprintModal = (sprint: any) => {
-      selectedSprint.value = sprint;
-      showCompleteSprintModal.value = true;
-    };
-
-    const completeSprint = async () => {
-      if (!selectedSprint.value) return;
-
-      const targetVal = targetSprintId.value === 'null' ? null : targetSprintId.value;
-      try {
-        await api.post(`/sprints/${selectedSprint.value.id}/complete`, {
-          targetSprintId: targetVal,
-        });
-
-        showCompleteSprintModal.value = false;
-        selectedSprint.value = null;
-        targetSprintId.value = 'null';
-        await loadPlannerData();
-      } catch (err) {
-        console.error('Failed to complete sprint:', err);
-      }
-    };
-
-    const reassignIssueSprint = async (issueId: string, event: Event) => {
-      const selectEl = event.target as HTMLSelectElement;
-      const targetVal = selectEl.value;
-      const sprintId = targetVal === 'backlog' ? null : targetVal;
-
-      try {
-        await api.patch(`/issues/${issueId}`, { sprintId });
-        await loadPlannerData();
-      } catch (err) {
-        console.error('Failed to reassign issue sprint:', err);
-        selectEl.value = 'backlog'; // fallback visual selection
-      }
-    };
-
-    const otherSprints = (excludeId: string) => {
-      return sprints.value.filter((s) => s.id !== excludeId);
-    };
-
-    const futureSprints = computed(() => {
-      return sprints.value.filter((s) => s.status === 'FUTURE');
+    const sortedSprints = computed(() => {
+      const order: Record<string, number> = { ACTIVE: 0, FUTURE: 1, COMPLETED: 2 };
+      return [...sprints.value].sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3));
     });
 
-    const sprintStatusClass = (status: string) => {
-      if (status === 'ACTIVE') return 'bg-green-100 text-green-700';
-      if (status === 'COMPLETED') return 'bg-gray-200 text-gray-600';
-      return 'bg-blue-100 text-blue-700';
+    const filterIssues = (issues: any[]) => {
+      let result = issues;
+      if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase();
+        result = result.filter((i) => i.summary?.toLowerCase().includes(q) || i.key?.toLowerCase().includes(q));
+      }
+      if (filterType.value) result = result.filter((i) => i.type === filterType.value);
+      if (filterPriority.value) result = result.filter((i) => i.priority === filterPriority.value);
+      if (filterAssignee.value) {
+        if (filterAssignee.value === 'unassigned') result = result.filter((i) => !i.assigneeId);
+        else result = result.filter((i) => i.assigneeId === filterAssignee.value);
+      }
+      return result;
     };
 
+    const filteredSprintIssues = (sprint: any) => filterIssues(sprint.issues || []);
+    const filteredBacklogIssues = computed(() => filterIssues(backlogIssues.value));
+
+    const clearFilters = () => {
+      searchQuery.value = '';
+      filterType.value = '';
+      filterPriority.value = '';
+      filterAssignee.value = '';
+    };
+
+    // Data loading
+    const loadData = async () => {
+      if (!projectId.value) return;
+      try {
+        const [sprintRes, issuesRes] = await Promise.all([
+          api.get(`/projects/${projectId.value}/sprints`),
+          api.get(`/projects/${projectId.value}/issues`, { params: { sprintId: 'null' } }),
+        ]);
+        if (sprintRes.data.success) sprints.value = sprintRes.data.data;
+        if (issuesRes.data.success) backlogIssues.value = issuesRes.data.data;
+
+        // Extract unique assignees
+        const allIssues = [...(sprintRes.data.data?.flatMap((s: any) => s.issues || []) || []), ...(issuesRes.data.data || [])];
+        const seen = new Set<string>();
+        assignees.value = allIssues
+          .filter((i: any) => i.assignee && !seen.has(i.assigneeId) && seen.add(i.assigneeId))
+          .map((i: any) => i.assignee);
+      } catch (err) {
+        console.error('Failed to load backlog data:', err);
+      }
+    };
+
+    const loadSprintStats = async () => {
+      const active = sprints.value.find((s) => s.status === 'ACTIVE');
+      if (!active) { activeSprintStats.value = null; return; }
+      try {
+        const res = await api.get(`/sprints/${active.id}/stats`);
+        if (res.data.success) activeSprintStats.value = res.data.data;
+      } catch { activeSprintStats.value = null; }
+    };
+
+    watch(projectId, loadData, { immediate: true });
+    watch(() => sprints.value, loadSprintStats, { deep: true });
+
+    // Drag & Drop
+    const onDragEnd = async (_targetSprintId: string | null) => {
+      // After drag, sync the issue's sprintId with the backend
+      for (const sprint of sprints.value) {
+        for (const issue of sprint.issues || []) {
+          if (issue.sprintId !== sprint.id) {
+            try {
+              await api.patch(`/issues/${issue.id}`, { sprintId: sprint.id });
+              issue.sprintId = sprint.id;
+            } catch { await loadData(); return; }
+          }
+        }
+      }
+      for (const issue of backlogIssues.value) {
+        if (issue.sprintId) {
+          try {
+            await api.patch(`/issues/${issue.id}`, { sprintId: null });
+            issue.sprintId = null;
+          } catch { await loadData(); return; }
+        }
+      }
+    };
+
+    // Sprint Actions
+    const handleSprintAction = async (sprint: any, action: string) => {
+      switch (action) {
+        case 'start':
+          try {
+            await api.post(`/sprints/${sprint.id}/start`);
+            await loadData();
+          } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to start sprint');
+          }
+          break;
+        case 'complete':
+          completingSprint.value = sprint;
+          showCompleteDialog.value = true;
+          break;
+        case 'reopen':
+          try {
+            await api.post(`/sprints/${sprint.id}/reopen`);
+            await loadData();
+          } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to reopen sprint');
+          }
+          break;
+        case 'edit':
+          editingSprint.value = sprint;
+          showEditDialog.value = true;
+          break;
+        case 'stats':
+          try {
+            const res = await api.get(`/sprints/${sprint.id}/stats`);
+            if (res.data.success) activeSprintStats.value = res.data.data;
+            showStatsDrawer.value = true;
+          } catch { /* ignore */ }
+          break;
+        case 'archive':
+          try {
+            await api.post(`/sprints/${sprint.id}/archive`);
+            await loadData();
+          } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to archive sprint');
+          }
+          break;
+        case 'restore':
+          try {
+            await api.post(`/sprints/${sprint.id}/restore`);
+            await loadData();
+          } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to restore sprint');
+          }
+          break;
+        case 'delete':
+          if (!confirm(`Delete sprint "${sprint.name}"? Issues will be moved to backlog.`)) return;
+          try {
+            await api.delete(`/sprints/${sprint.id}`);
+            await loadData();
+          } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to delete sprint');
+          }
+          break;
+      }
+    };
+
+    const openCreateSprint = () => {
+      editingSprint.value = null;
+      showEditDialog.value = true;
+    };
+
+    const handleSprintSubmit = async (form: any) => {
+      try {
+        if (editingSprint.value) {
+          await api.patch(`/sprints/${editingSprint.value.id}`, form);
+        } else {
+          await api.post(`/projects/${projectId.value}/sprints`, form);
+        }
+        await loadData();
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'Failed to save sprint');
+      }
+    };
+
+    const handleCompleteSprint = async (data: { targetSprintId: string | null }) => {
+      if (!completingSprint.value) return;
+      try {
+        await api.post(`/sprints/${completingSprint.value.id}/complete`, data);
+        completingSprint.value = null;
+        await loadData();
+      } catch (err: any) {
+        alert(err.response?.data?.message || 'Failed to complete sprint');
+      }
+    };
+
+    // Selection
+    const toggleSelect = (issueId: string) => {
+      const idx = selectedIssues.value.indexOf(issueId);
+      if (idx >= 0) selectedIssues.value.splice(idx, 1);
+      else selectedIssues.value.push(issueId);
+    };
+
+    const toggleCollapse = (sprintId: string) => {
+      if (collapsedSprints.value.has(sprintId)) collapsedSprints.value.delete(sprintId);
+      else collapsedSprints.value.add(sprintId);
+    };
+
+    // Bulk operations
+    const bulkMoveToSprint = async () => {
+      if (selectedIssues.value.length === 0 || !bulkSprintTarget.value) return;
+      try {
+        await api.post('/issues/bulk-move-sprint', {
+          issueIds: selectedIssues.value,
+          sprintId: bulkSprintTarget.value === 'backlog' ? null : bulkSprintTarget.value,
+        });
+        selectedIssues.value = [];
+        bulkSprintTarget.value = '';
+        await loadData();
+      } catch { /* ignore */ }
+    };
+
+    const bulkDelete = async () => {
+      if (selectedIssues.value.length === 0) return;
+      if (!confirm(`Delete ${selectedIssues.value.length} issues?`)) return;
+      try {
+        await api.post('/issues/bulk-delete', { issueIds: selectedIssues.value });
+        selectedIssues.value = [];
+        await loadData();
+      } catch { /* ignore */ }
+    };
+
+    // Helpers
+    const sprintStatusClass = (status: string) => {
+      const map: Record<string, string> = {
+        ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+        FUTURE: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+        COMPLETED: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
+        ARCHIVED: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
+      };
+      return map[status] || map.FUTURE;
+    };
+
+    const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    // Socket realtime sync
+    const socketEvents = [
+      'sprint:created', 'sprint:updated', 'sprint:started',
+      'sprint:completed', 'sprint:reopened', 'sprint:archived',
+      'sprint:restored', 'sprint:deleted', 'issue:updated',
+    ];
+
+    onMounted(() => {
+      if (projectId.value) joinProject(projectId.value);
+      socketEvents.forEach((event) => socket.on(event, loadData));
+    });
+
+    onUnmounted(() => {
+      if (projectId.value) leaveProject(projectId.value);
+      socketEvents.forEach((event) => socket.off(event, loadData));
+    });
+
     return {
-      projectStore,
-      sprints,
-      backlogIssues,
-      showCreateSprintModal,
-      newSprintName,
-      newSprintGoal,
-      createSprint,
-      startSprint,
-      showCompleteSprintModal,
-      selectedSprint,
-      targetSprintId,
-      openCompleteSprintModal,
-      completeSprint,
-      reassignIssueSprint,
-      otherSprints,
-      futureSprints,
-      sprintStatusClass,
+      projectStore, sprints, backlogIssues, assignees,
+      collapsedSprints, backlogCollapsed, selectedIssues, bulkSprintTarget,
+      showStatsDrawer, activeSprintStats,
+      searchQuery, filterType, filterPriority, filterAssignee,
+      hasActiveFilters, sortedSprints, filteredSprintIssues, filteredBacklogIssues,
+      clearFilters, onDragEnd,
+      showEditDialog, editingSprint, showCompleteDialog, completingSprint,
+      handleSprintAction, openCreateSprint, handleSprintSubmit, handleCompleteSprint,
+      toggleSelect, toggleCollapse, bulkMoveToSprint, bulkDelete,
+      sprintStatusClass, formatDate,
     };
   },
 });
 </script>
+
+<style scoped>
+.backlog-ghost {
+  opacity: 0.4;
+  background: rgb(249 115 22 / 0.1);
+  border: 2px dashed rgb(249 115 22 / 0.4);
+  border-radius: 0.5rem;
+}
+.backlog-drag {
+  opacity: 0.9;
+  transform: rotate(1deg);
+  box-shadow: 0 8px 25px -5px rgb(0 0 0 / 0.2);
+}
+</style>

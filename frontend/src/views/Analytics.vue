@@ -124,6 +124,65 @@
         </div>
       </div>
 
+      <!-- Burndown & Velocity Charts Section -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Burndown Chart -->
+        <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-zyra-gray-darkBorder p-5">
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-slate-700">
+            <h3 class="font-bold uppercase tracking-wider text-xs text-slate-500 dark:text-slate-300">Sprint Burndown</h3>
+            <select v-model="selectedSprintId" @change="fetchBurndown" class="text-xs border border-gray-300 dark:border-slate-600 rounded px-2 py-1 bg-white dark:bg-slate-800 dark:text-slate-200">
+              <option value="">Select Sprint</option>
+              <option v-for="s in sprintOptions" :key="s.id" :value="s.id">{{ s.name }}</option>
+            </select>
+          </div>
+          <div v-if="burndownData" class="space-y-2">
+            <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
+              <span>Total: {{ burndownData.totalPoints }} pts</span>
+              <span>{{ burndownData.totalIssues }} issues</span>
+            </div>
+            <!-- Simple bar chart representation -->
+            <div class="space-y-1">
+              <div v-for="day in burndownData.chartData" :key="day.date" class="flex items-center gap-2 text-xs">
+                <span class="w-16 text-slate-500 dark:text-slate-400 flex-shrink-0">{{ day.date.slice(5) }}</span>
+                <div class="flex-grow h-4 bg-slate-100 dark:bg-slate-700 rounded relative">
+                  <div class="absolute inset-y-0 left-0 bg-blue-300 dark:bg-blue-700 rounded opacity-50" :style="{ width: (day.ideal / burndownData.totalPoints * 100) + '%' }"></div>
+                  <div class="absolute inset-y-0 left-0 bg-orange-500 rounded" :style="{ width: (day.actual / burndownData.totalPoints * 100) + '%' }"></div>
+                </div>
+                <span class="w-8 text-right text-slate-600 dark:text-slate-300 font-medium">{{ day.actual }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 mt-2 text-[10px] text-slate-400">
+              <span class="flex items-center gap-1"><span class="w-3 h-2 bg-blue-300 rounded inline-block"></span> Ideal</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-2 bg-orange-500 rounded inline-block"></span> Actual</span>
+            </div>
+          </div>
+          <p v-else class="text-xs text-slate-400 text-center py-8">Select a sprint to view burndown</p>
+        </div>
+
+        <!-- Velocity Chart -->
+        <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-zyra-gray-darkBorder p-5">
+          <h3 class="font-bold mb-4 pb-2 border-b border-gray-100 dark:border-slate-700 uppercase tracking-wider text-xs text-slate-500 dark:text-slate-300">
+            Velocity (Last Sprints)
+          </h3>
+          <div v-if="velocityData && velocityData.sprints.length > 0" class="space-y-3">
+            <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
+              <span>Avg Velocity: <strong class="text-slate-700 dark:text-white">{{ velocityData.averageVelocity }} pts/sprint</strong></span>
+            </div>
+            <div v-for="sprint in velocityData.sprints" :key="sprint.sprintId" class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="font-medium text-slate-700 dark:text-slate-300">{{ sprint.sprintName }}</span>
+                <span class="text-slate-500 dark:text-slate-400">{{ sprint.completed }}/{{ sprint.committed }} pts</span>
+              </div>
+              <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3 relative">
+                <div class="absolute inset-y-0 left-0 bg-slate-300 dark:bg-slate-600 rounded-full" :style="{ width: '100%' }"></div>
+                <div class="absolute inset-y-0 left-0 bg-green-500 rounded-full" :style="{ width: (sprint.committed > 0 ? sprint.completed / sprint.committed * 100 : 0) + '%' }"></div>
+              </div>
+            </div>
+          </div>
+          <p v-else class="text-xs text-slate-400 text-center py-8">No completed sprints yet</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -140,6 +199,10 @@ export default defineComponent({
 
     const analytics = ref<any>(null);
     const loading = ref(false);
+    const selectedSprintId = ref('');
+    const burndownData = ref<any>(null);
+    const velocityData = ref<any>(null);
+    const sprintOptions = ref<any[]>([]);
 
     const projectId = computed(() => route.params.projectId as string);
 
@@ -156,6 +219,34 @@ export default defineComponent({
         console.error('Failed to load analytics metrics:', err);
       } finally {
         loading.value = false;
+      }
+
+      // Fetch sprints for burndown selector
+      try {
+        const sprintRes = await api.get(`/projects/${projectId.value}/sprints`);
+        sprintOptions.value = sprintRes.data?.data || sprintRes.data || [];
+      } catch { /* ignore */ }
+
+      // Fetch velocity
+      fetchVelocity();
+    };
+
+    const fetchBurndown = async () => {
+      if (!selectedSprintId.value) { burndownData.value = null; return; }
+      try {
+        const res = await api.get(`/sprints/${selectedSprintId.value}/burndown`);
+        burndownData.value = res.data?.data || null;
+      } catch {
+        burndownData.value = null;
+      }
+    };
+
+    const fetchVelocity = async () => {
+      try {
+        const res = await api.get(`/projects/${projectId.value}/velocity`);
+        velocityData.value = res.data?.data || null;
+      } catch {
+        velocityData.value = null;
       }
     };
 
@@ -184,6 +275,11 @@ export default defineComponent({
       loading,
       percent,
       priorityColor,
+      selectedSprintId,
+      burndownData,
+      velocityData,
+      sprintOptions,
+      fetchBurndown,
     };
   },
 });

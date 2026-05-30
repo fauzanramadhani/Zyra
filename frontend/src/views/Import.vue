@@ -57,7 +57,8 @@
 
       <!-- Mapping Table list -->
       <div class="flex-grow overflow-y-auto p-5">
-        <table class="w-full text-left border-collapse text-xs">
+        <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-xs min-w-[600px]">
           <thead>
             <tr class="border-b border-gray-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold uppercase">
               <th class="pb-3 w-1/3">CSV Header Column</th>
@@ -92,6 +93,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- Footer navigation -->

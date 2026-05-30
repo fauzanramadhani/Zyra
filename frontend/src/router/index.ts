@@ -77,6 +77,26 @@ const routes: RouteRecordRaw[] = [
         name: 'TrashBin',
         component: () => import('../views/TrashBin.vue'),
       },
+      {
+        path: 'releases',
+        name: 'Releases',
+        component: () => import('../views/Releases.vue'),
+      },
+      {
+        path: 'automation',
+        name: 'Automation',
+        component: () => import('../views/Automation.vue'),
+      },
+      {
+        path: 'templates',
+        name: 'Templates',
+        component: () => import('../views/Templates.vue'),
+      },
+      {
+        path: 'roadmap',
+        name: 'Roadmap',
+        component: () => import('../views/Roadmap.vue'),
+      },
     ],
   },
   {

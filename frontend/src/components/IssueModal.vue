@@ -230,10 +230,10 @@
                 <img :src="c.author.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Zyra'" class="w-8 h-8 rounded-full shadow-sm flex-shrink-0" />
                 <div class="flex-grow min-w-0">
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs font-bold text-gray-800">{{ c.author.firstName }} {{ c.author.lastName }}</span>
-                    <span class="text-[10px] text-gray-400">{{ formatDate(c.createdAt) }}</span>
+                    <span class="text-xs font-bold text-gray-800 dark:text-slate-200">{{ c.author.firstName }} {{ c.author.lastName }}</span>
+                    <span class="text-[10px] text-gray-400 dark:text-slate-500">{{ formatDate(c.createdAt) }}</span>
                   </div>
-                  <div class="text-sm text-gray-700" v-html="c.body"></div>
+                  <div class="text-sm text-gray-700 dark:text-slate-300" v-html="c.body"></div>
                 </div>
               </div>
             </div>
@@ -319,10 +319,45 @@
           <div v-if="issue.customFields && issue.customFields.length > 0">
             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 mb-2">Imported Fields</label>
             <div class="space-y-2 p-3 bg-white dark:bg-slate-800 rounded border border-gray-200 dark:border-slate-700">
-              <div v-for="cf in issue.customFields" :key="cf.id" class="flex justify-between items-start text-xs border-b border-gray-100 pb-1.5 last:border-b-0 last:pb-0">
-                <span class="font-bold text-gray-500">{{ cf.fieldName }}:</span>
-                <span class="text-gray-700 font-medium ml-2 text-right break-words max-w-[150px]">{{ cf.fieldValue }}</span>
+              <div v-for="cf in issue.customFields" :key="cf.id" class="flex justify-between items-start text-xs border-b border-gray-100 dark:border-slate-700 pb-1.5 last:border-b-0 last:pb-0">
+                <span class="font-bold text-gray-500 dark:text-slate-300">{{ cf.fieldName }}:</span>
+                <span class="text-gray-700 dark:text-slate-200 font-medium ml-2 text-right break-words max-w-[150px]">{{ cf.fieldValue }}</span>
               </div>
+            </div>
+          </div>
+
+          <!-- Watchers -->
+          <div>
+            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 mb-1.5">Watchers</label>
+            <div class="flex items-center gap-2 flex-wrap">
+              <div v-for="w in watchers" :key="w.id" class="flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full text-xs">
+                <img :src="w.user?.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=W'" class="w-4 h-4 rounded-full" />
+                <span class="text-gray-700 dark:text-slate-300">{{ w.user?.firstName }}</span>
+              </div>
+              <button v-if="!isWatching" @click="watchIssue" class="px-2 py-1 text-xs font-medium text-zyra-primary hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-full border border-orange-200 dark:border-orange-800 transition">
+                + Watch
+              </button>
+              <button v-else @click="unwatchIssue" class="px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full border border-red-200 dark:border-red-800 transition">
+                Unwatch
+              </button>
+            </div>
+          </div>
+
+          <!-- Time Tracking -->
+          <div>
+            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 mb-1.5">Time Tracking</label>
+            <div class="p-3 bg-white dark:bg-slate-800 rounded border border-gray-200 dark:border-slate-700 space-y-2">
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500 dark:text-slate-400">Logged:</span>
+                <span class="font-bold text-gray-700 dark:text-slate-200">{{ timeSummary.totalHours || 0 }}h</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-500 dark:text-slate-400">Entries:</span>
+                <span class="font-bold text-gray-700 dark:text-slate-200">{{ timeSummary.logCount || 0 }}</span>
+              </div>
+              <button @click="showLogTimeModal = true" class="w-full mt-1 px-3 py-1.5 text-xs font-semibold text-zyra-primary border border-orange-200 dark:border-orange-800 rounded hover:bg-orange-50 dark:hover:bg-orange-900/20 transition">
+                + Log Time
+              </button>
             </div>
           </div>
 
@@ -344,6 +379,27 @@
             <p>Updated: {{ formatDate(issue.updatedAt) }}</p>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Time Modal -->
+  <div v-if="showLogTimeModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]" @click.self="showLogTimeModal = false">
+    <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-xl w-full max-w-sm p-5">
+      <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">Log Time</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Time Spent (minutes) *</label>
+          <input v-model.number="logTimeForm.timeSpent" type="number" min="1" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-white text-sm" placeholder="60" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Description</label>
+          <input v-model="logTimeForm.description" type="text" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-white text-sm" placeholder="What did you work on?" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button @click="showLogTimeModal = false" class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-slate-400">Cancel</button>
+        <button @click="logTime" class="px-3 py-1.5 bg-zyra-primary text-white text-xs font-semibold rounded hover:bg-zyra-primary-hover transition">Log</button>
       </div>
     </div>
   </div>
@@ -441,6 +497,13 @@ export default defineComponent({
     const linkSearchResults = ref<any[]>([]);
     const selectedLinkTarget = ref<any>(null);
 
+    // Watchers & Time Tracking
+    const watchers = ref<any[]>([]);
+    const isWatching = ref(false);
+    const timeSummary = ref({ totalHours: 0, logCount: 0 });
+    const showLogTimeModal = ref(false);
+    const logTimeForm = ref({ timeSpent: 60, description: '' });
+
     const currentUserAvatar = computed(() => authStore.user?.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Zyra');
 
     // Fetch Issue Details
@@ -462,6 +525,10 @@ export default defineComponent({
 
           // Load linked issues
           loadIssueLinks(id);
+
+          // Load watchers & time tracking
+          loadWatchers(id);
+          loadTimeSummary(id);
         }
       } catch (err) {
         console.error('Failed to load issue details:', err);
@@ -542,6 +609,57 @@ export default defineComponent({
       } catch (err) {
         issueLinks.value = [];
       }
+    };
+
+    // Watchers
+    const loadWatchers = async (issueId: string) => {
+      try {
+        const res = await api.get(`/issues/${issueId}/watchers`);
+        watchers.value = res.data?.data || [];
+        const watchRes = await api.get(`/issues/${issueId}/watching`);
+        isWatching.value = watchRes.data?.data?.watching || false;
+      } catch {
+        watchers.value = [];
+        isWatching.value = false;
+      }
+    };
+
+    const watchIssue = async () => {
+      if (!issue.value) return;
+      try {
+        await api.post(`/issues/${issue.value.id}/watch`);
+        isWatching.value = true;
+        loadWatchers(issue.value.id);
+      } catch { /* ignore */ }
+    };
+
+    const unwatchIssue = async () => {
+      if (!issue.value) return;
+      try {
+        await api.delete(`/issues/${issue.value.id}/watch`);
+        isWatching.value = false;
+        loadWatchers(issue.value.id);
+      } catch { /* ignore */ }
+    };
+
+    // Time Tracking
+    const loadTimeSummary = async (issueId: string) => {
+      try {
+        const res = await api.get(`/issues/${issueId}/time-summary`);
+        timeSummary.value = res.data?.data || { totalHours: 0, logCount: 0 };
+      } catch {
+        timeSummary.value = { totalHours: 0, logCount: 0 };
+      }
+    };
+
+    const logTime = async () => {
+      if (!issue.value || !logTimeForm.value.timeSpent) return;
+      try {
+        await api.post(`/issues/${issue.value.id}/worklogs`, logTimeForm.value);
+        showLogTimeModal.value = false;
+        logTimeForm.value = { timeSpent: 60, description: '' };
+        loadTimeSummary(issue.value.id);
+      } catch { /* ignore */ }
     };
 
     let linkSearchTimeout: any = null;
@@ -781,6 +899,15 @@ export default defineComponent({
       createLink,
       removeLink,
       linkTypeLabel,
+      // Watchers & Time Tracking
+      watchers,
+      isWatching,
+      watchIssue,
+      unwatchIssue,
+      timeSummary,
+      showLogTimeModal,
+      logTimeForm,
+      logTime,
     };
   },
 });

@@ -1,25 +1,26 @@
 <template>
-  <div class="flex-grow p-6 flex flex-col h-screen overflow-hidden text-[#172B4D] dark:text-slate-200">
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-[#172B4D] dark:text-slate-200">
 
     <!-- Top Filter Header -->
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex justify-between items-center mb-4 md:mb-6">
       <div>
-        <h1 class="text-xl font-bold text-slate-800 dark:text-white">
+        <h1 class="text-base md:text-xl font-bold text-slate-800 dark:text-white truncate">
           {{ projectStore.currentProject?.name || 'Loading Project...' }} Board
         </h1>
-        <p class="text-xs text-slate-400">Kanban Board — Drag cards to precise positions</p>
+        <p class="text-[10px] md:text-xs text-slate-400 hidden sm:block">Kanban Board — Drag cards to precise positions</p>
       </div>
       <button
         @click="showCreateModal = true"
-        class="px-4 py-2 bg-zyra-primary hover:bg-zyra-primary-hover text-white text-sm font-bold rounded-lg shadow transition"
+        class="px-3 md:px-4 py-2 bg-zyra-primary hover:bg-zyra-primary-hover text-white text-xs md:text-sm font-bold rounded-lg shadow transition flex-shrink-0"
       >
-        Create Issue
+        <span class="hidden sm:inline">Create Issue</span>
+        <span class="sm:hidden">+ New</span>
       </button>
     </div>
 
     <!-- Filters Row -->
-    <div class="flex flex-wrap gap-3 items-center mb-6 p-4 bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-gray-200 dark:border-zyra-gray-darkBorder shadow-sm">
-      <div class="relative w-64">
+    <div class="flex flex-wrap gap-2 md:gap-3 items-center mb-4 md:mb-6 p-3 md:p-4 bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-gray-200 dark:border-zyra-gray-darkBorder shadow-sm">
+      <div class="relative w-full sm:w-48 md:w-64">
         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
           <SearchIcon class="w-4 h-4" />
         </span>
@@ -31,11 +32,11 @@
         />
       </div>
 
-      <!-- Sprint filter — scopes board to ONE sprint, cutting 300 items to ~30 -->
+      <!-- Sprint filter -->
       <select
         v-model="selectedSprintId"
         @change="loadBoard"
-        class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none min-w-[160px]"
+        class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none w-full sm:w-auto sm:min-w-[160px]"
       >
         <option value="">All Sprints</option>
         <option value="backlog">📦 Backlog only</option>
@@ -44,7 +45,7 @@
         </option>
       </select>
 
-      <select v-model="filterType" class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none">
+      <select v-model="filterType" class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none w-[calc(50%-4px)] sm:w-auto">
         <option value="">All Types</option>
         <option value="STORY">Stories</option>
         <option value="TASK">Tasks</option>
@@ -52,7 +53,7 @@
         <option value="EPIC">Epics</option>
       </select>
 
-      <select v-model="filterPriority" class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none">
+      <select v-model="filterPriority" class="border border-gray-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 dark:text-slate-200 outline-none w-[calc(50%-4px)] sm:w-auto">
         <option value="">All Priorities</option>
         <option value="LOW">Low</option>
         <option value="MEDIUM">Medium</option>
@@ -70,7 +71,7 @@
 
       <!-- Item count badge -->
       <div class="ml-auto flex items-center gap-2">
-        <span class="text-[10px] text-slate-400 font-medium">
+        <span class="text-[10px] text-slate-400 font-medium hidden sm:inline">
           {{ totalIssueCount }} issue{{ totalIssueCount !== 1 ? 's' : '' }} visible
         </span>
         <!-- Drag Disabled Warning -->
@@ -85,11 +86,11 @@
     </div>
 
     <!-- Board columns grid -->
-    <div v-if="projectStore.currentBoard" class="flex-grow flex gap-4 overflow-x-auto pb-4 items-stretch select-none">
+    <div v-if="projectStore.currentBoard" class="flex-grow flex gap-3 md:gap-4 overflow-x-auto pb-4 items-stretch select-none snap-x snap-mandatory scroll-smooth" ref="boardScrollRef">
       <div
-        v-for="col in projectStore.currentBoard.columns"
+        v-for="(col, colIdx) in projectStore.currentBoard.columns"
         :key="col.id"
-        class="w-72 flex-shrink-0 bg-slate-100 dark:bg-zyra-gray-darkCard rounded-xl p-3 flex flex-col max-h-full border border-slate-200 dark:border-zyra-gray-darkBorder transition-colors"
+        class="w-[85vw] sm:w-64 md:w-72 flex-shrink-0 bg-slate-100 dark:bg-zyra-gray-darkCard rounded-xl p-2 md:p-3 flex flex-col max-h-full border border-slate-200 dark:border-zyra-gray-darkBorder transition-colors snap-start"
         :class="{ 'border-orange-400 bg-orange-50/30': isDraggingOver === col.id }"
       >
         <!-- Column title header -->
@@ -181,6 +182,18 @@
           Drop cards here
         </div>
       </div>
+
+      <!-- Mobile column indicator (dots) -->
+      <div v-if="projectStore.currentBoard" class="flex sm:hidden justify-center gap-1.5 mt-1 pb-1 flex-shrink-0">
+        <button
+          v-for="(col, idx) in projectStore.currentBoard.columns"
+          :key="col.id"
+          @click="scrollToColumn(idx)"
+          class="w-2 h-2 rounded-full transition-all duration-200"
+          :class="activeColIdx === idx ? 'bg-orange-500 w-4' : 'bg-slate-300 dark:bg-slate-600'"
+          :aria-label="'Scroll to ' + col.name"
+        ></button>
+      </div>
     </div>
 
     <!-- Active Details Modal -->
@@ -253,6 +266,8 @@ export default defineComponent({
     const filterType = ref('');
     const filterPriority = ref('');
     const isDraggingOver = ref<string | null>(null);
+    const boardScrollRef = ref<HTMLElement | null>(null);
+    const activeColIdx = ref(0);
 
     const showDetailsModal = ref(false);
     const selectedIssueId = ref('');
@@ -353,6 +368,37 @@ export default defineComponent({
     const onDragEnd = () => {
       isDraggingOver.value = null;
     };
+
+    // ── Mobile column navigation ────────────────────────────────────────────────
+    const scrollToColumn = (idx: number) => {
+      if (!boardScrollRef.value || !projectStore.currentBoard) return;
+      const columns = boardScrollRef.value.children;
+      if (columns[idx]) {
+        columns[idx].scrollIntoView({ behavior: 'smooth', inline: 'start' });
+      }
+    };
+
+    const updateActiveColIdx = () => {
+      if (!boardScrollRef.value || !projectStore.currentBoard) return;
+      const container = boardScrollRef.value;
+      const scrollCenter = container.scrollLeft + container.clientWidth / 2;
+      const cols = Array.from(container.children) as HTMLElement[];
+      let closest = 0;
+      let minDist = Infinity;
+      cols.forEach((col, i) => {
+        const dist = Math.abs(col.offsetLeft + col.clientWidth / 2 - scrollCenter);
+        if (dist < minDist) { minDist = dist; closest = i; }
+      });
+      activeColIdx.value = closest;
+    };
+
+    onMounted(() => {
+      boardScrollRef.value?.addEventListener('scroll', updateActiveColIdx, { passive: true });
+    });
+
+    onUnmounted(() => {
+      boardScrollRef.value?.removeEventListener('scroll', updateActiveColIdx);
+    });
 
     /**
      * Fired when a card crosses into a DIFFERENT column.
@@ -551,6 +597,9 @@ export default defineComponent({
       priorityDotClass,
       priorityBorderClass,
       loadBoard,
+      boardScrollRef,
+      activeColIdx,
+      scrollToColumn,
     };
   },
 });
