@@ -9,21 +9,21 @@ datasource db {
 
 // Users & Authentication
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  username     String?   @unique
-  bio          String?
-  avatarUrl    String?
-  timezone     String?
-  language     String?
-  twoFactorEnabled Boolean @default(false)
-  twoFactorSecret String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  firstName        String
+  lastName         String
+  username         String?   @unique
+  bio              String?
+  avatarUrl        String?
+  timezone         String?
+  language         String?
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
 
   // Relations
   workspaceMembers WorkspaceMember[]
@@ -36,65 +36,68 @@ model User {
   importJobs       ImportJob[]
   activities       Activity[]
   notifications    Notification[]
-  
+
   // New Relations for Feature Expansion
-  invitationsSent  WorkspaceInvitation[] @relation("InvitationSender")
-  teamMembers      TeamMember[]
-  userRoles        UserRole[]
-  sessions         Session[]
-  workLogs         WorkLog[]
-  watchers         IssueWatcher[]
-  savedFilters     SavedFilter[]
-  estimationVotes  EstimationVote[]
+  invitationsSent WorkspaceInvitation[] @relation("InvitationSender")
+  teamMembers     TeamMember[]
+  userRoles       UserRole[]
+  sessions        Session[]
+  workLogs        WorkLog[]
+  watchers        IssueWatcher[]
+  savedFilters    SavedFilter[]
+  estimationVotes EstimationVote[]
+  dashboards      Dashboard[]
+  goals           Goal[]                @relation("GoalOwner")
+  timesheets      Timesheet[]
 }
 
 // Workspaces
 model Workspace {
-  id          String    @id @default(uuid())
-  name        String
-  slug        String    @unique
-  avatarUrl   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-  archivedAt  DateTime?
+  id         String    @id @default(uuid())
+  name       String
+  slug       String    @unique
+  avatarUrl  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  archivedAt DateTime?
 
   // Relations
-  members      WorkspaceMember[]
-  projects     Project[]
-  invitations  WorkspaceInvitation[]
-  teams        Team[]
-  roles        Role[]
-  userRoles    UserRole[]
+  members     WorkspaceMember[]
+  projects    Project[]
+  invitations WorkspaceInvitation[]
+  teams       Team[]
+  roles       Role[]
+  userRoles   UserRole[]
 }
 
 model WorkspaceMember {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   workspaceId String
   userId      String
-  role        String    // "OWNER", "ADMIN", "MEMBER", "VIEWER"
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  role        String // "OWNER", "ADMIN", "MEMBER", "VIEWER"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, userId])
 }
 
 // Teams
 model Team {
-  id          String       @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   description String?
   workspaceId String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   archivedAt  DateTime?
 
-  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  members     TeamMember[]
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members   TeamMember[]
 }
 
 model TeamMember {
@@ -103,8 +106,8 @@ model TeamMember {
   userId    String
   createdAt DateTime @default(now())
 
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
 }
@@ -115,7 +118,7 @@ model WorkspaceInvitation {
   workspaceId  String
   invitedEmail String
   invitedBy    String
-  role         String    // "ADMIN", "MEMBER", "VIEWER"
+  role         String // "ADMIN", "MEMBER", "VIEWER"
   token        String    @unique
   status       String    @default("PENDING") // "PENDING", "ACCEPTED", "REJECTED", "EXPIRED", "CANCELLED"
   expiresAt    DateTime
@@ -126,77 +129,77 @@ model WorkspaceInvitation {
   deletedAt    DateTime?
   archivedAt   DateTime?
 
-  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  sender       User      @relation("InvitationSender", fields: [invitedBy], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sender    User      @relation("InvitationSender", fields: [invitedBy], references: [id], onDelete: Cascade)
 }
 
 // Roles & Permissions RBAC
 model Role {
-  id          String       @id @default(uuid())
-  name        String       // e.g. "Workspace Admin", "Project Editor"
+  id          String    @id @default(uuid())
+  name        String // e.g. "Workspace Admin", "Project Editor"
   description String?
-  workspaceId String?      // null for default/system roles, or linked to workspace
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  workspaceId String? // null for default/system roles, or linked to workspace
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   archivedAt  DateTime?
 
-  workspace   Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace   Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   permissions RolePermission[]
   userRoles   UserRole[]
 }
 
 model Permission {
-  id          String       @id @default(uuid())
-  name        String       @unique // e.g. "WORKSPACE_EDIT", "PROJECT_DELETE", "ISSUE_CREATE"
+  id          String    @id @default(uuid())
+  name        String    @unique // e.g. "WORKSPACE_EDIT", "PROJECT_DELETE", "ISSUE_CREATE"
   description String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
   archivedAt  DateTime?
 
-  roles       RolePermission[]
+  roles RolePermission[]
 }
 
 model RolePermission {
-  id           String     @id @default(uuid())
+  id           String   @id @default(uuid())
   roleId       String
   permissionId String
-  createdAt    DateTime   @default(now())
+  createdAt    DateTime @default(now())
 
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
 }
 
 model UserRole {
-  id          String     @id @default(uuid())
+  id          String   @id @default(uuid())
   userId      String
   roleId      String
   workspaceId String
-  createdAt   DateTime   @default(now())
+  createdAt   DateTime @default(now())
 
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId, workspaceId])
 }
 
 // Session Tracking for Security
 model Session {
-  id          String    @id @default(uuid())
-  userId      String
-  token       String    @unique
-  deviceInfo  String?
-  ipAddress   String?
-  createdAt   DateTime  @default(now())
-  expiresAt   DateTime
-  revokedAt   DateTime?
-  deletedAt   DateTime?
+  id         String    @id @default(uuid())
+  userId     String
+  token      String    @unique
+  deviceInfo String?
+  ipAddress  String?
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  deletedAt  DateTime?
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Projects
@@ -215,18 +218,25 @@ model Project {
   archivedAt  DateTime?
 
   // Relations
-  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  members     ProjectMember[]
-  boards      Board[]
-  issues      Issue[]
-  sprints     Sprint[]
-  mappings    ImportMapping[]
-  labels      Label[]
-  statuses    Status[]
-  releases    Release[]
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members         ProjectMember[]
+  boards          Board[]
+  issues          Issue[]
+  sprints         Sprint[]
+  mappings        ImportMapping[]
+  labels          Label[]
+  statuses        Status[]
+  releases        Release[]
   automationRules AutomationRule[]
   issueTemplates  IssueTemplate[]
   savedFilters    SavedFilter[]
+  gitIntegrations GitIntegration[]
+  workflows       Workflow[]
+  recurringIssues RecurringIssue[]
+  slaPolicies     SlaPolicy[]
+  approvalRules   ApprovalRule[]
+  publicForms     PublicForm[]
+  emailInboxes    EmailInbox[]
 
   @@unique([workspaceId, key])
 }
@@ -235,75 +245,75 @@ model ProjectMember {
   id        String   @id @default(uuid())
   projectId String
   userId    String
-  role      String   // "ADMIN", "MEMBER", "VIEWER"
+  role      String // "ADMIN", "MEMBER", "VIEWER"
   createdAt DateTime @default(now())
 
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
 }
 
 // Sprints & Boards
 model Sprint {
-  id        String    @id @default(uuid())
-  name      String
-  goal      String?
-  startDate DateTime?
-  endDate   DateTime?
-  status    String    @default("FUTURE") // "ACTIVE", "FUTURE", "COMPLETED"
-  projectId String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id         String    @id @default(uuid())
+  name       String
+  goal       String?
+  startDate  DateTime?
+  endDate    DateTime?
+  status     String    @default("FUTURE") // "ACTIVE", "FUTURE", "COMPLETED"
+  projectId  String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
   archivedAt DateTime?
 
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  issues    Issue[]
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues             Issue[]
   estimationSessions EstimationSession[]
 }
 
 model Board {
-  id        String   @id @default(uuid())
-  name      String
-  type      String   @default("KANBAN") // "KANBAN", "SCRUM"
-  projectId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id         String    @id @default(uuid())
+  name       String
+  type       String    @default("KANBAN") // "KANBAN", "SCRUM"
+  projectId  String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
   archivedAt DateTime?
 
-  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  columns   BoardColumn[]
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  columns BoardColumn[]
 }
 
 model BoardColumn {
-  id        String   @id @default(uuid())
-  name      String
-  position  Int      // Ordinal position
-  boardId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id         String    @id @default(uuid())
+  name       String
+  position   Int // Ordinal position
+  boardId    String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
   archivedAt DateTime?
 
-  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  issues    Issue[]
+  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  issues Issue[]
 }
 
 // Project Labels (Custom Issue Tags)
 model Label {
-  id          String       @id @default(uuid())
-  name        String
-  color       String       // e.g. "#FF0000"
-  projectId   String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  deletedAt   DateTime?
-  archivedAt  DateTime?
+  id         String    @id @default(uuid())
+  name       String
+  color      String // e.g. "#FF0000"
+  projectId  String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  archivedAt DateTime?
 
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  issues      IssueLabel[]
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  IssueLabel[]
 }
 
 model IssueLabel {
@@ -312,83 +322,88 @@ model IssueLabel {
   labelId   String
   createdAt DateTime @default(now())
 
-  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  label     Label    @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
 
   @@unique([issueId, labelId])
 }
 
 // Project Workflow Custom Statuses
 model Status {
-  id          String       @id @default(uuid())
-  name        String
-  color       String
-  projectId   String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  deletedAt   DateTime?
-  archivedAt  DateTime?
+  id         String    @id @default(uuid())
+  name       String
+  color      String
+  projectId  String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  archivedAt DateTime?
 
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // Issues (Tasks, Bugs, etc.)
 model Issue {
-  id           String    @id @default(uuid())
-  key          String    @unique // e.g. "PROJ-42"
-  summary      String
-  description  String?   // TipTap HTML/JSON content
-  statusId     String    // Mapped to BoardColumn
-  priority     String    @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "HIGHEST"
-  type         String    @default("TASK")   // "STORY", "TASK", "BUG", "EPIC"
-  storyPoints  Float?
-  dueDate      DateTime?
-  
-  projectId    String
-  sprintId     String?
-  assigneeId   String?
-  reporterId   String
-  parentId     String?   // For Subtasks support
-  epicId       String?   // Epic issue relation ID
-  order        Float     @default(1000.0)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
-  archivedAt   DateTime?
+  id          String    @id @default(uuid())
+  key         String    @unique // e.g. "PROJ-42"
+  summary     String
+  description String? // TipTap HTML/JSON content
+  statusId    String // Mapped to BoardColumn
+  priority    String    @default("MEDIUM") // "LOW", "MEDIUM", "HIGH", "HIGHEST"
+  type        String    @default("TASK") // "STORY", "TASK", "BUG", "EPIC"
+  storyPoints Float?
+  dueDate     DateTime?
+
+  projectId  String
+  sprintId   String?
+  assigneeId String?
+  reporterId String
+  parentId   String? // For Subtasks support
+  epicId     String? // Epic issue relation ID
+  order      Float     @default(1000.0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  archivedAt DateTime?
 
   // Relations
-  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  status       BoardColumn    @relation(fields: [statusId], references: [id])
-  sprint       Sprint?        @relation(fields: [sprintId], references: [id])
-  assignee     User?          @relation("Assignee", fields: [assigneeId], references: [id])
-  reporter     User           @relation("Reporter", fields: [reporterId], references: [id])
-  parent       Issue?         @relation("Subtasks", fields: [parentId], references: [id])
-  subtasks     Issue[]        @relation("Subtasks")
-  
-  comments     Comment[]
-  attachments  Attachment[]
-  activities   Activity[]
-  customFields IssueCustomField[]
-  labels       IssueLabel[]
+  project  Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status   BoardColumn @relation(fields: [statusId], references: [id])
+  sprint   Sprint?     @relation(fields: [sprintId], references: [id])
+  assignee User?       @relation("Assignee", fields: [assigneeId], references: [id])
+  reporter User        @relation("Reporter", fields: [reporterId], references: [id])
+  parent   Issue?      @relation("Subtasks", fields: [parentId], references: [id])
+  subtasks Issue[]     @relation("Subtasks")
+
+  comments         Comment[]
+  attachments      Attachment[]
+  activities       Activity[]
+  customFields     IssueCustomField[]
+  labels           IssueLabel[]
   // Issue linking (blocks / is blocked by / relates to)
-  outwardLinks IssueLink[] @relation("OutwardLinks")
-  inwardLinks  IssueLink[] @relation("InwardLinks")
-  workLogs     WorkLog[]
-  watchers     IssueWatcher[]
+  outwardLinks     IssueLink[]        @relation("OutwardLinks")
+  inwardLinks      IssueLink[]        @relation("InwardLinks")
+  workLogs         WorkLog[]
+  watchers         IssueWatcher[]
+  gitCommits       GitCommit[]
+  gitBranches      GitBranch[]
+  gitPRs           GitPullRequest[]
+  slaTrackers      SlaTracker[]
+  approvalRequests ApprovalRequest[]
 
   @@index([statusId, order])
 }
 
 // Issue Links (blocking, relating, duplicating)
 model IssueLink {
-  id           String   @id @default(uuid())
-  linkType     String   // "BLOCKS", "IS_BLOCKED_BY", "RELATES_TO", "DUPLICATES", "IS_DUPLICATED_BY"
-  sourceId     String   // The issue that has this link outward
-  targetId     String   // The linked issue
-  createdAt    DateTime @default(now())
+  id        String   @id @default(uuid())
+  linkType  String // "BLOCKS", "IS_BLOCKED_BY", "RELATES_TO", "DUPLICATES", "IS_DUPLICATED_BY"
+  sourceId  String // The issue that has this link outward
+  targetId  String // The linked issue
+  createdAt DateTime @default(now())
 
-  source       Issue    @relation("OutwardLinks", fields: [sourceId], references: [id], onDelete: Cascade)
-  target       Issue    @relation("InwardLinks", fields: [targetId], references: [id], onDelete: Cascade)
+  source Issue @relation("OutwardLinks", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Issue @relation("InwardLinks", fields: [targetId], references: [id], onDelete: Cascade)
 
   @@unique([sourceId, targetId, linkType])
   @@index([sourceId])
@@ -399,72 +414,72 @@ model IssueCustomField {
   id         String   @id @default(uuid())
   issueId    String
   fieldName  String
-  fieldValue String   // JSON serialized value for flexible storage
+  fieldValue String // JSON serialized value for flexible storage
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  issue      Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
 
   @@unique([issueId, fieldName])
 }
 
 // Comments, Attachments, Notifications
 model Comment {
-  id        String    @id @default(uuid())
-  issueId   String
-  authorId  String
-  body      String    // Rich content
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id         String    @id @default(uuid())
+  issueId    String
+  authorId   String
+  body       String // Rich content
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
   archivedAt DateTime?
 
-  issue     Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  author    User      @relation(fields: [authorId], references: [id])
+  issue  Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id])
 }
 
 model Attachment {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   issueId      String
   filename     String
   fileUrl      String
   mimeType     String
   size         Int
   uploadedById String
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   deletedAt    DateTime?
   archivedAt   DateTime?
 
-  issue        Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  issue      Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation(fields: [uploadedById], references: [id])
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String
-  message   String
-  link      String?
-  read      Boolean  @default(false)
-  type      String   @default("SYSTEM") // "SYSTEM", "INVITATION", "ASSIGNMENT", "COMMENT", "MENTION", "ROLE_CHANGE"
-  senderId  String?
-  createdAt DateTime @default(now())
-  deletedAt DateTime?
+  id         String    @id @default(uuid())
+  userId     String
+  title      String
+  message    String
+  link       String?
+  read       Boolean   @default(false)
+  type       String    @default("SYSTEM") // "SYSTEM", "INVITATION", "ASSIGNMENT", "COMMENT", "MENTION", "ROLE_CHANGE"
+  senderId   String?
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
   archivedAt DateTime?
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Activity {
   id        String   @id @default(uuid())
   issueId   String
   userId    String
-  action    String   // "CREATE", "UPDATE_STATUS", "ASSIGNED", etc.
-  details   String   // JSON string of differences
+  action    String // "CREATE", "UPDATE_STATUS", "ASSIGNED", etc.
+  details   String // JSON string of differences
   createdAt DateTime @default(now())
 
-  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
 }
 
 // Audits & Logging
@@ -472,50 +487,50 @@ model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
   action    String
-  details   String   // JSON string
+  details   String // JSON string
   ipAddress String?
   createdAt DateTime @default(now())
 
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 // CSV Import Management
 model ImportJob {
-  id          String        @id @default(uuid())
+  id          String    @id @default(uuid())
   filename    String
-  status      String        @default("PENDING") // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
-  progress    Int           @default(0) // Percentage 0 - 100
-  totalRows   Int           @default(0)
-  successRows Int           @default(0)
-  failedRows  Int           @default(0)
+  status      String    @default("PENDING") // "PENDING", "PROCESSING", "COMPLETED", "FAILED"
+  progress    Int       @default(0) // Percentage 0 - 100
+  totalRows   Int       @default(0)
+  successRows Int       @default(0)
+  failedRows  Int       @default(0)
   createdBy   String
   startedAt   DateTime?
   completedAt DateTime?
   projectId   String
 
-  user        User          @relation(fields: [createdBy], references: [id])
-  errors      ImportError[]
+  user   User          @relation(fields: [createdBy], references: [id])
+  errors ImportError[]
 }
 
 model ImportMapping {
   id              String   @id @default(uuid())
   projectId       String
-  mappingTemplate String   // JSON layout mapping columns to standard schema fields
+  mappingTemplate String // JSON layout mapping columns to standard schema fields
   createdBy       String
   createdAt       DateTime @default(now())
 
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model ImportError {
-  id           String    @id @default(uuid())
+  id           String   @id @default(uuid())
   jobId        String
   rowNumber    Int
-  rawData      String    // JSON serialized row content
+  rawData      String // JSON serialized row content
   errorMessage String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
-  job          ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
 // ============================================
@@ -524,18 +539,18 @@ model ImportError {
 
 // --- Time Tracking / Work Logs ---
 model WorkLog {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   issueId     String
   userId      String
-  timeSpent   Int      // Minutes
+  timeSpent   Int // Minutes
   description String?
-  loggedAt    DateTime @default(now())
+  loggedAt    DateTime  @default(now())
   startedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id])
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
 }
 
 // --- Issue Watchers ---
@@ -545,25 +560,25 @@ model IssueWatcher {
   userId    String
   createdAt DateTime @default(now())
 
-  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([issueId, userId])
 }
 
 // --- Saved Filters ---
 model SavedFilter {
-  id          String   @id @default(uuid())
-  name        String
-  projectId   String
-  userId      String
-  filters     String   // JSON: { status, priority, type, assignee, sprint, labels, search, dueDateRange }
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  projectId String
+  userId    String
+  filters   String // JSON: { status, priority, type, assignee, sprint, labels, search, dueDateRange }
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // --- Release / Version Management ---
@@ -578,8 +593,8 @@ model Release {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  issues      ReleaseIssue[]
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  ReleaseIssue[]
 }
 
 model ReleaseIssue {
@@ -588,31 +603,31 @@ model ReleaseIssue {
   issueId   String
   createdAt DateTime @default(now())
 
-  release   Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
 
   @@unique([releaseId, issueId])
 }
 
 // --- Workflow Automation Rules ---
 model AutomationRule {
-  id             String    @id @default(uuid())
-  name           String
-  projectId      String
-  enabled        Boolean   @default(true)
-  triggerType    String    // event: issue_created, issue_updated, issue_status_changed, etc.
-  triggerConfig  String?   // JSON: { fromStatusId, toStatusId, toAssigneeId, etc. }
-  conditions     String?   // JSON: [{ field, operator, value }]
-  conditionLogic String    @default("AND")  // "AND" | "OR"
-  actions        String    // JSON: [{ type: "change_status"|"assign_user"|..., params: {} }]
-  executionCount Int       @default(0)
-  failureCount   Int       @default(0)
+  id              String    @id @default(uuid())
+  name            String
+  projectId       String
+  enabled         Boolean   @default(true)
+  triggerType     String // event: issue_created, issue_updated, issue_status_changed, etc.
+  triggerConfig   String? // JSON: { fromStatusId, toStatusId, toAssigneeId, etc. }
+  conditions      String? // JSON: [{ field, operator, value }]
+  conditionLogic  String    @default("AND") // "AND" | "OR"
+  actions         String // JSON: [{ type: "change_status"|"assign_user"|..., params: {} }]
+  executionCount  Int       @default(0)
+  failureCount    Int       @default(0)
   lastTriggeredAt DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  deletedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
-  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  executions     AutomationExecution[]
+  project    Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  executions AutomationExecution[]
 
   @@index([projectId])
   @@index([enabled])
@@ -623,18 +638,18 @@ model AutomationRule {
 model AutomationExecution {
   id              String    @id @default(uuid())
   ruleId          String
-  status          String    // "running" | "success" | "failed"
+  status          String // "running" | "success" | "failed"
   triggerEvent    String
-  triggerPayload  String?   // JSON snapshot of context
+  triggerPayload  String? // JSON snapshot of context
   triggeredBy     String?
   actionsExecuted Int       @default(0)
-  actionResults   String?   // JSON: [{ actionType, success, message, duration }]
+  actionResults   String? // JSON: [{ actionType, success, message, duration }]
   errorMessage    String?
   startedAt       DateTime  @default(now())
   completedAt     DateTime?
   duration        Int?
 
-  rule            AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  rule AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@index([ruleId])
   @@index([status])
@@ -643,46 +658,496 @@ model AutomationExecution {
 
 // --- Issue Templates ---
 model IssueTemplate {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   projectId   String
-  type        String   // "STORY", "TASK", "BUG", "EPIC"
+  type        String // "STORY", "TASK", "BUG", "EPIC"
   summary     String?
   description String?
   priority    String?
-  labels      String?  // JSON array of label IDs
+  labels      String? // JSON array of label IDs
   storyPoints Float?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // --- Planning Poker / Estimation Sessions ---
 model EstimationSession {
-  id          String   @id @default(uuid())
-  sprintId    String
-  status      String   @default("ACTIVE") // "ACTIVE", "COMPLETED"
+  id             String   @id @default(uuid())
+  sprintId       String
+  status         String   @default("ACTIVE") // "ACTIVE", "COMPLETED"
   currentIssueId String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  sprint      Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  votes       EstimationVote[]
+  sprint Sprint           @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  votes  EstimationVote[]
 }
 
 model EstimationVote {
+  id        String   @id @default(uuid())
+  sessionId String
+  issueId   String
+  userId    String
+  value     Float? // null = not voted yet
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session EstimationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, issueId, userId])
+}
+
+// ============================================
+// EXPANDED FEATURES
+// ============================================
+
+// --- Git Integration ---
+model GitIntegration {
+  id            String   @id @default(uuid())
+  projectId     String
+  provider      String // "GITHUB", "GITLAB", "BITBUCKET"
+  repoUrl       String
+  repoName      String
+  accessToken   String? // Encrypted
+  webhookSecret String?
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  commits      GitCommit[]
+  branches     GitBranch[]
+  pullRequests GitPullRequest[]
+
+  @@unique([projectId, repoUrl])
+}
+
+model GitCommit {
+  id            String   @id @default(uuid())
+  integrationId String
+  issueId       String?
+  sha           String
+  message       String
+  authorName    String
+  authorEmail   String
+  committedAt   DateTime
+  url           String?
+  createdAt     DateTime @default(now())
+
+  integration GitIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  issue       Issue?         @relation(fields: [issueId], references: [id], onDelete: SetNull)
+
+  @@unique([integrationId, sha])
+}
+
+model GitBranch {
+  id            String   @id @default(uuid())
+  integrationId String
+  issueId       String?
+  name          String
+  url           String?
+  createdAt     DateTime @default(now())
+
+  integration GitIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  issue       Issue?         @relation(fields: [issueId], references: [id], onDelete: SetNull)
+
+  @@unique([integrationId, name])
+}
+
+model GitPullRequest {
+  id            String    @id @default(uuid())
+  integrationId String
+  issueId       String?
+  prNumber      Int
+  title         String
+  status        String // "OPEN", "MERGED", "CLOSED"
+  authorName    String
+  url           String?
+  sourceBranch  String
+  targetBranch  String
+  mergedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  integration GitIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  issue       Issue?         @relation(fields: [issueId], references: [id], onDelete: SetNull)
+
+  @@unique([integrationId, prNumber])
+}
+
+// --- Custom Workflows ---
+model Workflow {
+  id        String    @id @default(uuid())
+  name      String
+  projectId String
+  isDefault Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  project     Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  states      WorkflowState[]
+  transitions WorkflowTransition[]
+}
+
+model WorkflowState {
+  id         String   @id @default(uuid())
+  workflowId String
+  name       String
+  category   String // "TODO", "IN_PROGRESS", "DONE"
+  color      String   @default("#6B7280")
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  workflow Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  outgoing WorkflowTransition[] @relation("TransitionFrom")
+  incoming WorkflowTransition[] @relation("TransitionTo")
+}
+
+model WorkflowTransition {
   id          String   @id @default(uuid())
-  sessionId   String
-  issueId     String
+  workflowId  String
+  fromStateId String
+  toStateId   String
+  name        String?
+  conditions  String? // JSON: role requirements, field conditions
+  createdAt   DateTime @default(now())
+
+  workflow  Workflow      @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  fromState WorkflowState @relation("TransitionFrom", fields: [fromStateId], references: [id], onDelete: Cascade)
+  toState   WorkflowState @relation("TransitionTo", fields: [toStateId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, fromStateId, toStateId])
+}
+
+// --- Custom Dashboards ---
+model Dashboard {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  projectId   String?
+  workspaceId String?
   userId      String
-  value       Float?   // null = not voted yet
+  isDefault   Boolean   @default(false)
+  layout      String? // JSON: grid layout config
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  widgets DashboardWidget[]
+}
+
+model DashboardWidget {
+  id          String   @id @default(uuid())
+  dashboardId String
+  type        String // "PIE_CHART", "BAR_CHART", "LINE_CHART", "CALENDAR", "ACTIVITY_STREAM", "STATS", "FILTER_RESULTS"
+  title       String
+  config      String // JSON: widget-specific configuration
+  position    Int      @default(0)
+  width       Int      @default(1) // Grid columns (1-4)
+  height      Int      @default(1) // Grid rows
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  session     EstimationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+}
 
-  @@unique([sessionId, issueId, userId])
+// --- Recurring Issues ---
+model RecurringIssue {
+  id           String    @id @default(uuid())
+  projectId    String
+  templateData String // JSON: issue template (summary, description, type, priority, assigneeId, labels)
+  schedule     String // Cron expression or "DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY"
+  timezone     String    @default("UTC")
+  enabled      Boolean   @default(true)
+  nextRunAt    DateTime?
+  lastRunAt    DateTime?
+  createdBy    String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// --- SLA Tracking ---
+model SlaPolicy {
+  id                String    @id @default(uuid())
+  name              String
+  projectId         String
+  priority          String // "LOW", "MEDIUM", "HIGH", "HIGHEST" or "*" for all
+  responseTimeMin   Int // Minutes to first response
+  resolutionTimeMin Int // Minutes to resolution
+  enabled           Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  project  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  trackers SlaTracker[]
+}
+
+model SlaTracker {
+  id                 String    @id @default(uuid())
+  slaPolicyId        String
+  issueId            String
+  responseDeadline   DateTime?
+  resolutionDeadline DateTime?
+  respondedAt        DateTime?
+  resolvedAt         DateTime?
+  breached           Boolean   @default(false)
+  breachType         String? // "RESPONSE", "RESOLUTION", "BOTH"
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  slaPolicy SlaPolicy @relation(fields: [slaPolicyId], references: [id], onDelete: Cascade)
+  issue     Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@unique([slaPolicyId, issueId])
+}
+
+// --- Goals & OKR Tracking ---
+model Goal {
+  id           String    @id @default(uuid())
+  title        String
+  description  String?
+  workspaceId  String
+  ownerId      String
+  parentId     String? // For nested goals
+  type         String    @default("OBJECTIVE") // "OBJECTIVE", "KEY_RESULT"
+  status       String    @default("ON_TRACK") // "ON_TRACK", "AT_RISK", "OFF_TRACK", "COMPLETED"
+  progress     Float     @default(0) // 0-100
+  targetValue  Float?
+  currentValue Float?
+  unit         String? // "PERCENTAGE", "NUMBER", "CURRENCY"
+  startDate    DateTime?
+  dueDate      DateTime?
+  cycle        String? // "Q1_2026", "Q2_2026", etc.
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  owner       User       @relation("GoalOwner", fields: [ownerId], references: [id])
+  parent      Goal?      @relation("GoalHierarchy", fields: [parentId], references: [id])
+  children    Goal[]     @relation("GoalHierarchy")
+  linkedItems GoalLink[]
+}
+
+model GoalLink {
+  id         String   @id @default(uuid())
+  goalId     String
+  entityType String // "PROJECT", "EPIC", "ISSUE", "SPRINT"
+  entityId   String
+  createdAt  DateTime @default(now())
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@unique([goalId, entityType, entityId])
+}
+
+// --- Approval Workflows ---
+model ApprovalRule {
+  id                String    @id @default(uuid())
+  projectId         String
+  name              String
+  triggerStatus     String // Status ID that triggers approval
+  targetStatus      String // Status to move to after approval
+  requiredApprovals Int       @default(1)
+  approverIds       String // JSON array of user IDs
+  enabled           Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requests ApprovalRequest[]
+}
+
+model ApprovalRequest {
+  id          String   @id @default(uuid())
+  ruleId      String
+  issueId     String
+  requestedBy String
+  status      String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rule      ApprovalRule       @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  issue     Issue              @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  responses ApprovalResponse[]
+}
+
+model ApprovalResponse {
+  id        String   @id @default(uuid())
+  requestId String
+  userId    String
+  decision  String // "APPROVED", "REJECTED"
+  comment   String?
+  createdAt DateTime @default(now())
+
+  request ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+}
+
+// --- Wiki / Knowledge Base ---
+model WikiSpace {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  projectId   String?
+  workspaceId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  pages WikiPage[]
+}
+
+model WikiPage {
+  id          String    @id @default(uuid())
+  title       String
+  content     String? // Rich text / Markdown
+  slug        String
+  spaceId     String
+  parentId    String?
+  authorId    String
+  position    Int       @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  space     WikiSpace      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  parent    WikiPage?      @relation("WikiHierarchy", fields: [parentId], references: [id])
+  children  WikiPage[]     @relation("WikiHierarchy")
+  revisions WikiRevision[]
+}
+
+model WikiRevision {
+  id        String   @id @default(uuid())
+  pageId    String
+  content   String
+  editedBy  String
+  version   Int
+  createdAt DateTime @default(now())
+
+  page WikiPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+}
+
+// --- Public Forms (Issue Submission) ---
+model PublicForm {
+  id              String    @id @default(uuid())
+  projectId       String
+  title           String
+  description     String?
+  fields          String // JSON: [{ name, type, required, options }]
+  slug            String    @unique
+  enabled         Boolean   @default(true)
+  defaultType     String    @default("BUG") // Issue type for submissions
+  defaultPriority String    @default("MEDIUM")
+  notifyUsers     String? // JSON array of user IDs to notify
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
+}
+
+model FormSubmission {
+  id        String   @id @default(uuid())
+  formId    String
+  data      String // JSON: submitted field values
+  issueId   String? // Created issue ID
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  form PublicForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+}
+
+// --- Email-to-Issue ---
+model EmailInbox {
+  id              String    @id @default(uuid())
+  projectId       String
+  emailAddress    String    @unique // e.g. "bugs-phx@zyra.local"
+  defaultType     String    @default("BUG")
+  defaultPriority String    @default("MEDIUM")
+  assigneeId      String?
+  enabled         Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  emails  IncomingEmail[]
+}
+
+model IncomingEmail {
+  id          String    @id @default(uuid())
+  inboxId     String
+  fromEmail   String
+  fromName    String?
+  subject     String
+  body        String
+  issueId     String? // Created issue ID
+  processedAt DateTime?
+  status      String    @default("PENDING") // "PENDING", "PROCESSED", "FAILED"
+  createdAt   DateTime  @default(now())
+
+  inbox EmailInbox @relation(fields: [inboxId], references: [id], onDelete: Cascade)
+}
+
+// --- Slack/Discord Integration ---
+model ChatIntegration {
+  id          String    @id @default(uuid())
+  workspaceId String
+  provider    String // "SLACK", "DISCORD"
+  webhookUrl  String
+  channelId   String?
+  channelName String?
+  events      String // JSON: ["issue_created", "issue_status_changed", "comment_added"]
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+// --- Time Reports ---
+model Timesheet {
+  id           String    @id @default(uuid())
+  userId       String
+  weekStart    DateTime // Monday of the week
+  status       String    @default("DRAFT") // "DRAFT", "SUBMITTED", "APPROVED", "REJECTED"
+  totalMinutes Int       @default(0)
+  approvedBy   String?
+  approvedAt   DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries TimesheetEntry[]
+
+  @@unique([userId, weekStart])
+}
+
+model TimesheetEntry {
+  id          String   @id @default(uuid())
+  timesheetId String
+  issueId     String?
+  projectId   String?
+  date        DateTime
+  minutes     Int
+  description String?
+  billable    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  timesheet Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
 }

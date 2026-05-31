@@ -133,6 +133,104 @@ An open-source alternative to Jira for project management and issue tracking. Bu
 - Filter by type, priority, and sprint
 - Real-time filter application on board view
 
+### Git Integration
+- Connect GitHub, GitLab, or Bitbucket repositories to projects
+- Auto-link commits, branches, and pull requests to issues via issue key detection (e.g. PHX-42)
+- Webhook handler for automatic commit/PR ingestion
+- Auto-update issue status when PR is merged
+- Branch name suggestion based on issue type and key (e.g. `feature/phx-5-add-login`)
+
+### Custom Workflows
+- Visual workflow editor with states and transitions
+- State categories: TODO, IN_PROGRESS, DONE
+- Transition rules with conditions (role requirements, field constraints)
+- Multiple workflows per project with default selection
+
+### Gantt Chart & Dependency Graph
+- Interactive Gantt chart with issue timelines
+- Dependency graph visualization (nodes + edges)
+- Critical path calculation through blocking dependencies
+- Progress tracking per issue based on status
+- Sprint grouping in timeline view
+
+### Custom Dashboards
+- Widget-based dashboards per user/project
+- Widget types: Pie Chart, Bar Chart, Line Chart, Calendar, Activity Stream, Stats, Filter Results
+- Configurable grid layout with drag-and-drop positioning
+- Widget data endpoint with real-time aggregation
+
+### Recurring Issues
+- Schedule automatic issue creation (Daily, Weekly, Biweekly, Monthly, or Cron)
+- Configurable issue template (summary, description, type, priority, assignee)
+- Timezone-aware scheduling
+- Manual trigger for testing
+- Enable/disable toggle
+
+### SLA & Due Date Tracking
+- SLA policies per project and priority level
+- Response time and resolution time targets (in minutes)
+- Automatic SLA tracker creation when issues are created
+- Breach detection with type classification (Response, Resolution, Both)
+- SLA compliance report with percentage metrics
+
+### Goals & OKR Tracking
+- Objectives and Key Results hierarchy
+- Progress tracking (0-100%) with auto-calculation from child goals
+- Goal status: On Track, At Risk, Off Track, Completed
+- Link goals to projects, epics, issues, or sprints
+- Quarterly cycle support (Q1_2026, Q2_2026, etc.)
+- Target/current value tracking with units
+
+### Approval Workflows
+- Multi-step approval rules per project
+- Configurable trigger status and target status
+- Multiple approvers with required approval count
+- Approve/reject with comments
+- Auto-move issue to target status upon full approval
+- Pending approvals inbox for approvers
+
+### Wiki / Knowledge Base
+- Wiki spaces per project or workspace
+- Hierarchical page structure (parent-child)
+- Rich text content with revision history
+- Auto-slug generation from titles
+- Version tracking with full revision log
+
+### Public Forms (Issue Submission)
+- Create public forms for external bug reports or feature requests
+- Customizable form fields (name, type, required, options)
+- No authentication required for submission
+- Auto-create issues from submissions
+- Notify configured users on new submissions
+- Submission history with IP tracking
+
+### Email-to-Issue
+- Configure email inboxes per project
+- Incoming email webhook processing
+- Auto-create issues from email subject/body
+- Default type, priority, and assignee configuration
+- Email processing status tracking (Pending, Processed, Failed)
+
+### Slack & Discord Integration
+- Webhook-based notifications to Slack or Discord channels
+- Configurable event subscriptions (issue created, status changed, comment added, sprint events)
+- Test webhook connectivity
+- Formatted messages per provider (Slack blocks, Discord embeds)
+
+### Timesheets & Time Reports
+- Weekly timesheet per user with auto-creation
+- Timesheet entries linked to issues and projects
+- Billable vs non-billable hour tracking
+- Submit/approve/reject workflow
+- Project-level time reports with user breakdown
+- Total hours, billable hours, and per-user aggregation
+
+### AI-Powered Features
+- **Smart Auto-Assign**: Suggests assignees based on workload and expertise (completed similar issues)
+- **Duplicate Detection**: Keyword-based similarity scoring to find potential duplicate issues
+- **Sprint Planning Suggestions**: Velocity calculation from past sprints + backlog prioritization to fit capacity
+- **Issue Summary**: Auto-generated insights including age, comment activity, status changes, time logged, and actionable warnings
+
 ## Services & Ports
 
 | Service | Port |

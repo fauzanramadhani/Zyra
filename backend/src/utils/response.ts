@@ -44,3 +44,12 @@ export function sendCreated(res: Response, message: string, data: any = null) {
 export function sendError(res: Response, statusCode: number, message: string, data: any = null) {
   return sendResponse(res, statusCode, false, message, data);
 }
+
+// Shorthand helpers
+export function success(res: Response, data: any, statusCode: number = 200) {
+  return sendResponse(res, statusCode, true, 'OK', data);
+}
+
+export function error(res: Response, message: string, statusCode: number = 500) {
+  return sendResponse(res, statusCode, false, message);
+}
