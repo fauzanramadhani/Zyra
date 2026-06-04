@@ -11,7 +11,10 @@ export const listForms = async (req: Request, res: Response) => {
       include: { _count: { select: { submissions: true } } },
       orderBy: { createdAt: 'desc' },
     });
-    return success(res, forms.map(f => ({ ...f, fields: JSON.parse(f.fields) })));
+    return success(res, forms.map(f => ({
+      ...f,
+      fields: (() => { try { return JSON.parse(f.fields || '[]'); } catch { return []; } })()
+    })));
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -119,7 +122,7 @@ export const submitForm = async (req: Request, res: Response) => {
 
     // Notify configured users
     if (form.notifyUsers) {
-      const userIds = JSON.parse(form.notifyUsers);
+      const userIds = (() => { try { return JSON.parse(form.notifyUsers || '[]'); } catch { return []; } })();
       for (const userId of userIds) {
         await prisma.notification.create({
           data: {
@@ -146,7 +149,10 @@ export const listSubmissions = async (req: Request, res: Response) => {
       where: { formId },
       orderBy: { createdAt: 'desc' },
     });
-    return success(res, submissions.map(s => ({ ...s, data: JSON.parse(s.data) })));
+    return success(res, submissions.map(s => ({
+      ...s,
+      data: (() => { try { return JSON.parse(s.data || '{}'); } catch { return {}; } })()
+    })));
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -158,7 +164,10 @@ export const getFormBySlug = async (req: Request, res: Response) => {
     const { slug } = req.params;
     const form = await prisma.publicForm.findUnique({ where: { slug } });
     if (!form || !form.enabled) return error(res, 'Form not found', 404);
-    return success(res, { ...form, fields: JSON.parse(form.fields) });
+    return success(res, {
+      ...form,
+      fields: (() => { try { return JSON.parse(form.fields || '[]'); } catch { return []; } })()
+    });
   } catch (e: any) {
     return error(res, e.message);
   }

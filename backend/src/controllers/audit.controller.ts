@@ -26,7 +26,7 @@ export async function getAuditLogs(req: AuthenticatedRequest, res: Response) {
     const formattedLogs = logs.map((log) => ({
       id: log.id,
       action: log.action,
-      details: JSON.parse(log.details),
+      details: (() => { try { return JSON.parse(log.details || '{}'); } catch { return {}; } })(),
       ipAddress: log.ipAddress,
       createdAt: log.createdAt,
       user: log.user ? {

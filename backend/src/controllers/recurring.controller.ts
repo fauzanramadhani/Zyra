@@ -77,7 +77,12 @@ export const triggerRecurringIssue = async (req: Request, res: Response) => {
     const recurring = await prisma.recurringIssue.findUnique({ where: { id: recurringId } });
     if (!recurring) return error(res, 'Not found', 404);
 
-    const template = JSON.parse(recurring.templateData);
+    let template: any = {};
+    try {
+      template = JSON.parse(recurring.templateData || '{}');
+    } catch {
+      template = {};
+    }
     const project = await prisma.project.findUnique({ where: { id: recurring.projectId }, include: { boards: { include: { columns: true } } } });
     if (!project) return error(res, 'Project not found', 404);
 

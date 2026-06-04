@@ -8,3 +8,5 @@ export { default as AppTooltip } from './AppTooltip.vue'
 export { default as AppSheet } from './AppSheet.vue'
 export { default as AppToast } from './AppToast.vue'
 export { default as AppModalContainer } from './AppModalContainer.vue'
+export { default as UserAvatar } from './UserAvatar.vue'
+

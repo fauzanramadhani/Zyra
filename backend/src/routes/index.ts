@@ -283,9 +283,12 @@ router.get('/goals', authenticateToken, goalController.listGoals);
 router.post('/goals', authenticateToken, goalController.createGoal);
 router.get('/goals/:goalId', authenticateToken, goalController.getGoal);
 router.patch('/goals/:goalId', authenticateToken, goalController.updateGoal);
+router.post('/goals/:goalId/progress', authenticateToken, goalController.updateGoalProgressManual);
 router.delete('/goals/:goalId', authenticateToken, goalController.deleteGoal);
 router.post('/goals/:goalId/links', authenticateToken, goalController.linkEntity);
 router.delete('/goals/:goalId/links/:linkId', authenticateToken, goalController.unlinkEntity);
+router.post('/goals/:goalId/archive', authenticateToken, goalController.archiveGoal);
+router.post('/goals/:goalId/unarchive', authenticateToken, goalController.unarchiveGoal);
 
 // --- Approval Workflow Routes ---
 router.get('/projects/:projectId/approvals/rules', authenticateToken, approvalController.listRules);

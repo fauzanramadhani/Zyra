@@ -23,8 +23,24 @@ export const listSpaces = async (req: Request, res: Response) => {
 export const createSpace = async (req: Request, res: Response) => {
   try {
     const { name, description, projectId, workspaceId } = req.body;
+
+    let finalWorkspaceId = workspaceId;
+    if (!finalWorkspaceId && projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { workspaceId: true }
+      });
+      if (project) {
+        finalWorkspaceId = project.workspaceId;
+      }
+    }
+
+    if (!finalWorkspaceId) {
+      return error(res, 'workspaceId is required', 400);
+    }
+
     const space = await prisma.wikiSpace.create({
-      data: { name, description, projectId, workspaceId },
+      data: { name, description, projectId, workspaceId: finalWorkspaceId },
     });
     return success(res, space, 201);
   } catch (e: any) {

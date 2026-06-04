@@ -128,8 +128,12 @@
                   placeholder="Search issue by key or summary..."
                   class="w-full border border-gray-300 dark:border-slate-600 rounded px-2.5 py-1.5 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-zyra-primary outline-none"
                 />
+                <!-- Loading indicator -->
+                <div v-if="linkSearchLoading" class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg p-3 text-center text-xs text-gray-500">
+                  <span class="animate-pulse">Searching...</span>
+                </div>
                 <!-- Search results dropdown -->
-                <div v-if="linkSearchResults.length > 0" class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                <div v-if="linkSearchResults.length > 0 && !linkSearchLoading" class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg max-h-40 overflow-y-auto">
                   <button
                     v-for="result in linkSearchResults"
                     :key="result.id"
@@ -204,7 +208,7 @@
             
             <!-- Comment entry box -->
             <div class="flex gap-3 mb-5">
-              <img :src="currentUserAvatar" class="w-8 h-8 rounded-full shadow-sm flex-shrink-0" />
+              <UserAvatar :src="authStore.user?.avatarUrl || ''" :firstName="authStore.user?.firstName || ''" :lastName="authStore.user?.lastName || ''" sizeClass="w-8 h-8" />
               <div class="flex-grow">
                 <textarea
                   v-model="commentInput"
@@ -227,13 +231,13 @@
             <!-- Comment items list -->
             <div class="space-y-4">
               <div v-for="c in issue.comments" :key="c.id" class="flex gap-3 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-150 dark:border-slate-700 relative group">
-                <img :src="c.author.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Zyra'" class="w-8 h-8 rounded-full shadow-sm flex-shrink-0" />
+                <UserAvatar :src="c.author.avatarUrl || ''" :firstName="c.author.firstName || ''" :lastName="c.author.lastName || ''" sizeClass="w-8 h-8" />
                 <div class="flex-grow min-w-0">
                   <div class="flex items-center gap-2 mb-1">
                     <span class="text-xs font-bold text-gray-800 dark:text-slate-200">{{ c.author.firstName }} {{ c.author.lastName }}</span>
                     <span class="text-[10px] text-gray-400 dark:text-slate-500">{{ formatDate(c.createdAt) }}</span>
                   </div>
-                  <div class="text-sm text-gray-700 dark:text-slate-300" v-html="c.body"></div>
+                  <div class="text-sm text-gray-700 dark:text-slate-300" v-html="sanitizeHtml(c.body)"></div>
                 </div>
               </div>
             </div>
@@ -264,9 +268,9 @@
               @change="updateField('assigneeId', assigneeSelect)"
               class="w-full border border-gray-300 dark:border-slate-600 rounded px-2.5 py-1.5 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-zyra-primary outline-none transition"
             >
-              <option value="null">Unassigned</option>
-              <option v-for="m in members" :key="m.user.id" :value="m.user.id">
-                {{ m.user.firstName }} {{ m.user.lastName }}
+              <option :value="null">Unassigned</option>
+              <option v-for="m in members" :key="m.user?.id || m.id" :value="m.user?.id || m.id">
+                {{ m.user?.firstName }} {{ m.user?.lastName }}
               </option>
             </select>
           </div>
@@ -308,11 +312,22 @@
               @change="updateField('sprintId', sprintSelect)"
               class="w-full border border-gray-300 dark:border-slate-600 rounded px-2.5 py-1.5 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-zyra-primary outline-none transition"
             >
-              <option value="null">None (Backlog)</option>
+              <option :value="null">None (Backlog)</option>
               <option v-for="s in activeSprints" :key="s.id" :value="s.id">
                 {{ s.name }} ({{ s.status }})
               </option>
             </select>
+          </div>
+
+          <!-- Due Date selection -->
+          <div>
+            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 mb-1.5">Due Date</label>
+            <input
+              type="date"
+              v-model="dueDateInput"
+              @change="updateField('dueDate', dueDateInput)"
+              class="w-full border border-gray-300 dark:border-slate-600 rounded px-2.5 py-1.5 text-sm bg-white dark:bg-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-zyra-primary outline-none transition"
+            />
           </div>
 
           <!-- Custom Fields display -->
@@ -331,7 +346,7 @@
             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 mb-1.5">Watchers</label>
             <div class="flex items-center gap-2 flex-wrap">
               <div v-for="w in watchers" :key="w.id" class="flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full text-xs">
-                <img :src="w.user?.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=W'" class="w-4 h-4 rounded-full" />
+                <UserAvatar :src="w.user?.avatarUrl || ''" :firstName="w.user?.firstName || ''" :lastName="w.user?.lastName || ''" sizeClass="w-4 h-4" />
                 <span class="text-gray-700 dark:text-slate-300">{{ w.user?.firstName }}</span>
               </div>
               <button v-if="!isWatching" @click="watchIssue" class="px-2 py-1 text-xs font-medium text-zyra-primary hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-full border border-orange-200 dark:border-orange-800 transition">
@@ -417,10 +432,12 @@
 
 <script lang="ts">
 import { defineComponent, ref, watch, computed } from 'vue';
+import DOMPurify from 'dompurify';
 import { useAuthStore } from '../store/auth';
 import { useProjectStore } from '../store/project';
 import { useToastStore } from '../store/toast';
 import AppConfirmDialog from './ui/AppConfirmDialog.vue';
+import { UserAvatar } from './ui';
 import api from '../services/api';
 import TipTapEditor from './TipTapEditor.vue';
 import {
@@ -441,6 +458,7 @@ export default defineComponent({
     TrashIcon,
     UploadCloudIcon,
     AppConfirmDialog,
+    UserAvatar,
   },
   props: {
     isOpen: {
@@ -476,10 +494,11 @@ export default defineComponent({
     const summaryInput = ref('');
     const descriptionInput = ref('');
     const statusSelect = ref('');
-    const assigneeSelect = ref('');
+    const assigneeSelect = ref<string | null>(null);
     const prioritySelect = ref('');
     const storyPointsInput = ref('');
-    const sprintSelect = ref('');
+    const sprintSelect = ref<string | null>(null);
+    const dueDateInput = ref('');
 
     // Comments / attachments state
     const commentInput = ref('');
@@ -508,27 +527,28 @@ export default defineComponent({
 
     // Fetch Issue Details
     const loadIssueDetails = async (id: string) => {
+      if (loading.value) return; // Guard: prevent concurrent calls
+      if (!id) return;
       loading.value = true;
       try {
         const response = await api.get(`/issues/${id}`);
         if (response.data.success) {
           issue.value = response.data.data;
-          
+
           // Map to inputs
           summaryInput.value = issue.value.summary;
           descriptionInput.value = issue.value.description || '';
           statusSelect.value = issue.value.statusId;
-          assigneeSelect.value = issue.value.assigneeId || 'null';
+          assigneeSelect.value = issue.value.assigneeId ?? null;
           prioritySelect.value = issue.value.priority;
           storyPointsInput.value = issue.value.storyPoints !== null ? String(issue.value.storyPoints) : '';
-          sprintSelect.value = issue.value.sprintId || 'null';
+          sprintSelect.value = issue.value.sprintId ?? null;
+          dueDateInput.value = issue.value.dueDate ? issue.value.dueDate.substring(0, 10) : '';
 
-          // Load linked issues
-          loadIssueLinks(id);
-
-          // Load watchers & time tracking
-          loadWatchers(id);
-          loadTimeSummary(id);
+          // Load linked issues, watchers & time tracking (fire-and-forget, errors handled inside)
+          loadIssueLinks(id).catch(e => console.error('Links load failed:', e));
+          loadWatchers(id).catch(e => console.error('Watchers load failed:', e));
+          loadTimeSummary(id).catch(e => console.error('Time summary failed:', e));
         }
       } catch (err) {
         console.error('Failed to load issue details:', err);
@@ -537,23 +557,13 @@ export default defineComponent({
       }
     };
 
-    // Watch for ID changes to fetch details
+    // Single watcher: trigger load when both isOpen AND issueId are present
     watch(
-      () => props.issueId,
-      (newId) => {
-        if (props.isOpen && newId) {
-          loadIssueDetails(newId);
-        }
-      }
-    );
-
-    // Sync input fields when modal turns open
-    watch(
-      () => props.isOpen,
-      (open) => {
-        if (open && props.issueId) {
-          loadIssueDetails(props.issueId);
-        } else {
+      [() => props.isOpen, () => props.issueId],
+      ([open, issueId]) => {
+        if (open && issueId) {
+          loadIssueDetails(issueId);
+        } else if (!open) {
           issue.value = null;
         }
       }
@@ -563,7 +573,7 @@ export default defineComponent({
     const updateField = async (fieldName: string, value: any) => {
       if (!issue.value) return;
 
-      const formattedVal = value === 'null' ? null : value;
+      const formattedVal = (value === 'null' || value === null) ? null : value;
       try {
         const response = await api.patch(`/issues/${issue.value.id}`, {
           [fieldName]: formattedVal,
@@ -573,8 +583,9 @@ export default defineComponent({
           issue.value = { ...issue.value, ...response.data.data };
           emit('updated');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(`Failed to update ${fieldName}:`, err);
+        toast.error(err.response?.data?.message || `Failed to update ${fieldName}`);
       }
     };
 
@@ -595,9 +606,11 @@ export default defineComponent({
           await loadIssueDetails(issue.value.id);
           subtaskSummary.value = '';
           showAddSubtask.value = false;
+          toast.success('Subtask created successfully');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to create subtask:', err);
+        toast.error(err.response?.data?.message || 'Failed to create subtask');
       }
     };
 
@@ -659,16 +672,22 @@ export default defineComponent({
         showLogTimeModal.value = false;
         logTimeForm.value = { timeSpent: 60, description: '' };
         loadTimeSummary(issue.value.id);
-      } catch { /* ignore */ }
+        toast.success('Work log added successfully');
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || 'Failed to log time');
+      }
     };
 
+    const linkSearchLoading = ref(false);
     let linkSearchTimeout: any = null;
     const searchIssuesForLink = () => {
       clearTimeout(linkSearchTimeout);
       if (!linkSearchQuery.value.trim() || !issue.value) {
         linkSearchResults.value = [];
+        linkSearchLoading.value = false;
         return;
       }
+      linkSearchLoading.value = true;
       linkSearchTimeout = setTimeout(async () => {
         try {
           const res = await api.get(`/projects/${issue.value.projectId}/issues`, {
@@ -679,6 +698,8 @@ export default defineComponent({
           linkSearchResults.value = results.filter((i: any) => i.id !== issue.value.id);
         } catch {
           linkSearchResults.value = [];
+        } finally {
+          linkSearchLoading.value = false;
         }
       }, 300);
     };
@@ -751,6 +772,12 @@ export default defineComponent({
     const uploadFile = async (file: File) => {
       if (!issue.value) return;
 
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error('File size exceeds 50MB limit');
+        return;
+      }
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -763,9 +790,11 @@ export default defineComponent({
 
         if (response.data.success) {
           issue.value.attachments.push(response.data.data);
+          toast.success('File uploaded successfully');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('File upload failed:', err);
+        toast.error(err.response?.data?.message || 'File upload failed');
       }
     };
 
@@ -859,7 +888,12 @@ export default defineComponent({
       emit('close');
     };
 
+    const sanitizeHtml = (html: string) => {
+      return DOMPurify.sanitize(html || '');
+    };
+
     return {
+      authStore,
       issue,
       loading,
       currentUserAvatar,
@@ -870,6 +904,7 @@ export default defineComponent({
       prioritySelect,
       storyPointsInput,
       sprintSelect,
+      dueDateInput,
       commentInput,
       isDragging,
       showAddSubtask,
@@ -899,6 +934,8 @@ export default defineComponent({
       createLink,
       removeLink,
       linkTypeLabel,
+      sanitizeHtml,
+      linkSearchLoading,
       // Watchers & Time Tracking
       watchers,
       isWatching,

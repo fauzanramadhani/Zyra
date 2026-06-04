@@ -84,18 +84,26 @@
   @apply mb-2;
 }
 
-.ProseMirror h2 {
+.ProseMirror h2, .prose h2 {
   @apply text-xl font-bold mb-3 mt-4;
 }
 
-.ProseMirror h3 {
+.ProseMirror h3, .prose h3 {
   @apply text-lg font-semibold mb-2 mt-3;
 }
 
-.ProseMirror ul {
-  @apply list-disc list-inside mb-3;
+.ProseMirror ul, .prose ul {
+  @apply list-disc list-outside pl-5 mb-3;
 }
 
-.ProseMirror ol {
-  @apply list-decimal list-inside mb-3;
+.ProseMirror ol, .prose ol {
+  @apply list-decimal list-outside pl-5 mb-3;
+}
+
+.ProseMirror li p, .prose li p {
+  display: inline;
+}
+
+.ProseMirror li, .prose li {
+  @apply mb-1;
 }

@@ -1,16 +1,16 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-tr from-orange-50 via-slate-50 to-orange-100 p-6">
     <!-- Card Container -->
-    <div class="w-full max-w-md bg-white bg-opacity-80 backdrop-blur-md rounded-2xl shadow-xl border border-white p-8 transition duration-300 hover:shadow-2xl">
+    <div class="w-full max-w-md bg-white dark:bg-slate-900 bg-opacity-80 dark:bg-opacity-80 backdrop-blur-md rounded-2xl shadow-xl border border-white dark:border-slate-700 p-8 transition duration-300 hover:shadow-2xl">
       <!-- Logo / Header -->
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-md mb-4 text-white text-3xl font-extrabold">
           🍊
         </div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-slate-800 font-sans">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100 font-sans">
           Get Started
         </h1>
-        <p class="text-sm text-slate-500 mt-2 font-medium">Create your self-hosted private workspace</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">Create your self-hosted private workspace</p>
       </div>
 
       <!-- Error alert -->
@@ -22,50 +22,50 @@
       <form @submit.prevent="handleRegister" class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">First Name</label>
+            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">First Name</label>
             <input
               type="text"
               v-model="firstName"
               required
               placeholder="e.g. Alex"
               maxlength="50"
-              class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white shadow-sm"
+              class="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm"
             />
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Last Name</label>
+            <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Last Name</label>
             <input
               type="text"
               v-model="lastName"
               required
               placeholder="e.g. Smith"
               maxlength="50"
-              class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white shadow-sm"
+              class="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm"
             />
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Email Address</label>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
           <input
             type="email"
             v-model="email"
             required
             maxlength="255"
             placeholder="e.g. alex@example.com"
-            class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white shadow-sm"
+            class="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm"
           />
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Password</label>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Password</label>
           <input
             type="password"
             v-model="password"
             required
             maxlength="128"
             placeholder="Min 6 characters"
-            class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white shadow-sm"
+            class="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm"
           />
         </div>
 
@@ -80,7 +80,7 @@
       </form>
 
       <!-- Footer links -->
-      <div class="mt-8 pt-6 border-t border-slate-200 text-center text-xs text-slate-500 dark:text-slate-400">
+      <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 text-center text-xs text-slate-500 dark:text-slate-400">
         <p>
           Already have an account?
           <router-link to="/login" class="text-zyra-primary font-bold hover:underline">Log In</router-link>

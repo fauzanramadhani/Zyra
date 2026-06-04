@@ -25,6 +25,7 @@ export const createDashboard = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { name, description, projectId, workspaceId, isDefault, layout } = req.body;
+    if (!name) return error(res, 'name is required', 400);
     const dashboard = await prisma.dashboard.create({
       data: { name, description, projectId, workspaceId, userId, isDefault, layout: layout ? JSON.stringify(layout) : null },
     });
@@ -76,9 +77,24 @@ export const deleteDashboard = async (req: Request, res: Response) => {
 export const addWidget = async (req: Request, res: Response) => {
   try {
     const { dashboardId } = req.params;
-    const { type, title, config, position, width, height } = req.body;
+    const { type, title, config, y, position, width, height } = req.body;
+
+    if (!type || !title) {
+      return error(res, 'type and title are required', 400);
+    }
+
+    const widgetPosition = position ?? y ?? 0;
+
     const widget = await prisma.dashboardWidget.create({
-      data: { dashboardId, type, title, config: JSON.stringify(config), position, width, height },
+      data: {
+        dashboardId,
+        type,
+        title,
+        config: JSON.stringify(config || {}),
+        position: widgetPosition,
+        width: width || 1,
+        height: height || 1,
+      },
     });
     return success(res, widget, 201);
   } catch (e: any) {
@@ -117,42 +133,68 @@ export const getWidgetData = async (req: Request, res: Response) => {
     const widget = await prisma.dashboardWidget.findUnique({ where: { id: widgetId }, include: { dashboard: true } });
     if (!widget) return error(res, 'Widget not found', 404);
 
-    const config = JSON.parse(widget.config);
+    let config: any = {};
+    try {
+      config = JSON.parse(widget.config || '{}');
+    } catch {
+      config = {};
+    }
     let data: any = {};
 
     switch (widget.type) {
       case 'PIE_CHART':
-      case 'BAR_CHART': {
+      case 'BAR_CHART':
+      case 'LINE_CHART': {
         const projectId = config.projectId || widget.dashboard.projectId;
         if (config.groupBy === 'status') {
           const issues = await prisma.issue.findMany({ where: { projectId, deletedAt: null }, include: { status: true } });
           const grouped: Record<string, number> = {};
           issues.forEach(i => { grouped[i.status.name] = (grouped[i.status.name] || 0) + 1; });
-          data = Object.entries(grouped).map(([name, count]) => ({ name, count }));
+          data = { labels: Object.keys(grouped), values: Object.values(grouped), items: Object.entries(grouped).map(([name, count]) => ({ name, count })) };
         } else if (config.groupBy === 'priority') {
           const issues = await prisma.issue.groupBy({ by: ['priority'], where: { projectId, deletedAt: null }, _count: true });
-          data = issues.map(i => ({ name: i.priority, count: i._count }));
+          data = { labels: issues.map(i => i.priority), values: issues.map(i => i._count), items: issues.map(i => ({ name: i.priority, count: i._count })) };
         } else if (config.groupBy === 'type') {
           const issues = await prisma.issue.groupBy({ by: ['type'], where: { projectId, deletedAt: null }, _count: true });
-          data = issues.map(i => ({ name: i.type, count: i._count }));
+          data = { labels: issues.map(i => i.type), values: issues.map(i => i._count), items: issues.map(i => ({ name: i.type, count: i._count })) };
+        } else {
+          // Default: group by status
+          const issues = await prisma.issue.findMany({ where: { projectId, deletedAt: null }, include: { status: true } });
+          const grouped: Record<string, number> = {};
+          issues.forEach(i => { grouped[i.status.name] = (grouped[i.status.name] || 0) + 1; });
+          data = { labels: Object.keys(grouped), values: Object.values(grouped), items: Object.entries(grouped).map(([name, count]) => ({ name, count })) };
         }
         break;
       }
       case 'STATS': {
         const projectId = config.projectId || widget.dashboard.projectId;
+        const doneColumns = await prisma.boardColumn.findMany({ where: { name: 'Done' }, select: { id: true } });
+        const doneColumnIds = doneColumns.map(c => c.id);
         const total = await prisma.issue.count({ where: { projectId, deletedAt: null } });
-        const completed = await prisma.issue.count({ where: { projectId, deletedAt: null, status: { name: 'Done' } } });
+        const completed = await prisma.issue.count({ where: { projectId, deletedAt: null, statusId: { in: doneColumnIds } } });
         data = { total, completed, completionRate: total > 0 ? Math.round((completed / total) * 100) : 0 };
         break;
       }
       case 'ACTIVITY_STREAM': {
         const projectId = config.projectId || widget.dashboard.projectId;
-        data = await prisma.activity.findMany({
+        const activities = await prisma.activity.findMany({
           where: { issue: { projectId } },
           include: { user: { select: { firstName: true, lastName: true, avatarUrl: true } }, issue: { select: { key: true, summary: true } } },
           orderBy: { createdAt: 'desc' },
           take: config.limit || 10,
         });
+        data = { items: activities };
+        break;
+      }
+      case 'CALENDAR': {
+        const projectId = config.projectId || widget.dashboard.projectId;
+        const issues = await prisma.issue.findMany({
+          where: { projectId, deletedAt: null, dueDate: { not: null } },
+          select: { id: true, key: true, summary: true, dueDate: true, priority: true },
+          orderBy: { dueDate: 'asc' },
+          take: config.limit || 20,
+        });
+        data = { items: issues };
         break;
       }
       default:

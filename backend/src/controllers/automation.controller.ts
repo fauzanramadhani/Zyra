@@ -21,8 +21,8 @@ export const createRule = async (req: Request, res: Response) => {
     const { projectId } = req.params;
     const { name, triggerType, triggerConfig, conditions, conditionLogic, actions, enabled } = req.body;
 
-    if (!name || !triggerType || !actions) {
-      res.status(400).json({ error: 'name, triggerType, and actions are required' });
+    if (!name || !triggerType || !actions || !Array.isArray(actions) || actions.length === 0) {
+      res.status(400).json({ error: 'actions must be a non-empty array' });
       return;
     }
 

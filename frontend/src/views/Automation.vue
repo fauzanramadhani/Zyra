@@ -21,8 +21,8 @@
     <!-- ============================================================ -->
     <!-- FIRST-TIME ONBOARDING BANNER -->
     <!-- ============================================================ -->
-    <div v-if="showOnboarding && !loading && rules.length === 0" 
-         class="mb-6 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/40 border border-orange-200 dark:border-orange-800 rounded-2xl p-5">
+    <div v-if="showOnboarding && !loading" 
+         class="mb-6 bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm rounded-2xl p-5">
       <div class="flex items-start gap-4">
         <div class="w-10 h-10 bg-orange-100 dark:bg-orange-900/50 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
           <ZapIcon class="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -91,8 +91,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
       <div class="flex items-center gap-3">
         <h1 class="text-xl font-bold text-slate-800 dark:text-white">Automation Rules</h1>
-        <button v-if="rules.length > 0"
-                @click="showOnboarding = !showOnboarding"
+        <button @click="showOnboarding = !showOnboarding"
                 class="p-1.5 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition"
                 title="Show quick-start guide">
           <HelpCircleIcon class="w-4 h-4" />

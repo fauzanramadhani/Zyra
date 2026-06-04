@@ -10,7 +10,10 @@ export const listIntegrations = async (req: Request, res: Response) => {
       where: { workspaceId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
-    return success(res, integrations.map(i => ({ ...i, events: JSON.parse(i.events) })));
+    return success(res, integrations.map(i => ({
+      ...i,
+      events: (() => { try { return JSON.parse(i.events || '[]'); } catch { return []; } })()
+    })));
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -103,7 +106,12 @@ export const sendNotification = async (req: Request, res: Response) => {
 
     const results = [];
     for (const integration of integrations) {
-      const events = JSON.parse(integration.events);
+      let events: string[] = [];
+      try {
+        events = JSON.parse(integration.events || '[]');
+      } catch {
+        events = [];
+      }
       if (!events.includes(event)) continue;
 
       const message = formatMessage(integration.provider, event, eventData);

@@ -47,9 +47,13 @@ export async function getBoard(req: Request, res: Response) {
                     avatarUrl: true,
                   },
                 },
-                // Include inward links where linkType is BLOCKS to determine blocked status
+                // Include inward links (BLOCKS) and outward links (IS_BLOCKED_BY) to determine blocked status
                 inwardLinks: {
                   where: { linkType: 'BLOCKS' },
+                  select: { id: true },
+                },
+                outwardLinks: {
+                  where: { linkType: 'IS_BLOCKED_BY' },
                   select: { id: true },
                 },
               },
@@ -70,8 +74,9 @@ export async function getBoard(req: Request, res: Response) {
         ...col,
         issues: col.issues.map((issue) => ({
           ...issue,
-          isBlocked: issue.inwardLinks.length > 0,
+          isBlocked: issue.inwardLinks.length > 0 || issue.outwardLinks.length > 0,
           inwardLinks: undefined,
+          outwardLinks: undefined,
         })),
       })),
     };

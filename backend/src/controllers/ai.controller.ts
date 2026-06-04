@@ -8,6 +8,10 @@ export const suggestAssignee = async (req: Request, res: Response) => {
     const { projectId } = req.params;
     const { type } = req.body;
 
+    // Cari columnIds yang namanya "Done"
+    const doneColumns = await prisma.boardColumn.findMany({ where: { name: 'Done' }, select: { id: true } });
+    const doneColumnIds = doneColumns.map(c => c.id);
+
     // Get project members
     const members = await prisma.projectMember.findMany({
       where: { projectId },
@@ -22,7 +26,7 @@ export const suggestAssignee = async (req: Request, res: Response) => {
             assigneeId: m.userId,
             projectId,
             deletedAt: null,
-            status: { name: { not: 'Done' } },
+            statusId: { notIn: doneColumnIds },
           },
         });
         // Calculate expertise score based on completed similar issues
@@ -32,7 +36,7 @@ export const suggestAssignee = async (req: Request, res: Response) => {
             projectId,
             type: type || undefined,
             deletedAt: null,
-            status: { name: 'Done' },
+            statusId: { in: doneColumnIds },
           },
         });
         return {

@@ -125,3 +125,4 @@ process.on('SIGTERM', async () => {
     process.exit(0);
   });
 });
+// Touch for nodemon restart to pick up generated Prisma client.

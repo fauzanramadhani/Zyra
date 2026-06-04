@@ -33,6 +33,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/workspace/goals',
+    name: 'WorkspaceGoals',
+    component: () => import('../views/Goals.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/notifications',
     name: 'NotificationInbox',
     component: () => import('../views/NotificationInbox.vue'),
@@ -96,6 +102,76 @@ const routes: RouteRecordRaw[] = [
         path: 'roadmap',
         name: 'Roadmap',
         component: () => import('../views/Roadmap.vue'),
+      },
+      {
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: () => import('../views/Dashboard.vue'),
+      },
+      {
+        path: 'workflows',
+        name: 'Workflows',
+        component: () => import('../views/Workflow.vue'),
+      },
+      {
+        path: 'git',
+        name: 'GitIntegration',
+        component: () => import('../views/GitIntegration.vue'),
+      },
+      {
+        path: 'recurring',
+        name: 'RecurringIssues',
+        component: () => import('../views/RecurringIssues.vue'),
+      },
+      {
+        path: 'sla',
+        name: 'Sla',
+        component: () => import('../views/Sla.vue'),
+      },
+      {
+        path: 'goals',
+        name: 'Goals',
+        component: () => import('../views/Goals.vue'),
+      },
+      {
+        path: 'approvals',
+        name: 'Approvals',
+        component: () => import('../views/Approvals.vue'),
+      },
+      {
+        path: 'wiki',
+        name: 'Wiki',
+        component: () => import('../views/Wiki.vue'),
+      },
+      {
+        path: 'forms',
+        name: 'PublicForms',
+        component: () => import('../views/PublicForms.vue'),
+      },
+      {
+        path: 'email-inbox',
+        name: 'EmailInbox',
+        component: () => import('../views/EmailInbox.vue'),
+      },
+      {
+        path: 'chat-integrations',
+        name: 'ChatIntegrations',
+        component: () => import('../views/ChatIntegrations.vue'),
+      },
+      {
+        path: 'timesheet',
+        name: 'Timesheet',
+        component: () => import('../views/Timesheet.vue'),
+      },
+      {
+        path: 'gantt',
+        name: 'Gantt',
+        component: () => import('../views/Gantt.vue'),
+      },
+      {
+        path: 'ai',
+        name: 'AiAssistant',
+        component: () => import('../views/AiAssistant.vue'),
       },
     ],
   },

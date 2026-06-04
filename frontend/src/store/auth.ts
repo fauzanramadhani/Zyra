@@ -80,7 +80,7 @@ export const useAuthStore = defineStore('auth', {
       return false;
     },
 
-    async login(credentials: { email: string; password }) {
+    async login(credentials: { email: string; password: string }) {
       this.loading = true;
       try {
         const response = await api.post('/auth/login', credentials);
@@ -102,7 +102,7 @@ export const useAuthStore = defineStore('auth', {
       return false;
     },
 
-    async register(userData: { email: string; password; firstName; lastName }) {
+    async register(userData: { email: string; password: string; firstName: string; lastName: string }) {
       this.loading = true;
       try {
         const response = await api.post('/auth/register', userData);

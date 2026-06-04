@@ -48,6 +48,7 @@ model User {
   estimationVotes EstimationVote[]
   dashboards      Dashboard[]
   goals           Goal[]                @relation("GoalOwner")
+  goalProgressLogs GoalProgressHistory[]
   timesheets      Timesheet[]
 }
 
@@ -849,7 +850,7 @@ model DashboardWidget {
   dashboardId String
   type        String // "PIE_CHART", "BAR_CHART", "LINE_CHART", "CALENDAR", "ACTIVITY_STREAM", "STATS", "FILTER_RESULTS"
   title       String
-  config      String // JSON: widget-specific configuration
+  config      String   @default("{}") // JSON: widget-specific configuration
   position    Int      @default(0)
   width       Int      @default(1) // Grid columns (1-4)
   height      Int      @default(1) // Grid rows
@@ -933,11 +934,34 @@ model Goal {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
+  archivedAt   DateTime?
+
+  // Progress Tracking Configuration
+  trackingMethod   String   @default("MANUAL") // "MANUAL" or "AUTOMATIC"
+  automaticSource  String?  // "PROJECT", "EPIC", "ISSUE"
+  calculationType  String?  // "COUNT" or "STORY_POINTS"
 
   owner       User       @relation("GoalOwner", fields: [ownerId], references: [id])
   parent      Goal?      @relation("GoalHierarchy", fields: [parentId], references: [id])
   children    Goal[]     @relation("GoalHierarchy")
   linkedItems GoalLink[]
+  history     GoalProgressHistory[]
+}
+
+model GoalProgressHistory {
+  id          String   @id @default(uuid())
+  goalId      String
+  changedById String
+  oldValue    Float?
+  newValue    Float?
+  progress    Float
+  note        String?
+  createdAt   DateTime @default(now())
+
+  goal      Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  changedBy User @relation(fields: [changedById], references: [id])
+
+  @@index([goalId])
 }
 
 model GoalLink {
@@ -1142,8 +1166,9 @@ model TimesheetEntry {
   timesheetId String
   issueId     String?
   projectId   String?
-  date        DateTime
-  minutes     Int
+  date        DateTime @default(now())
+  minutes     Int      @default(0)
+  hours       String   @default("[0,0,0,0,0,0,0]")
   description String?
   billable    Boolean  @default(true)
   createdAt   DateTime @default(now())

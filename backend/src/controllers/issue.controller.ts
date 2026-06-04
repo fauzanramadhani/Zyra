@@ -4,6 +4,7 @@ import { sendSuccess, sendCreated, sendError } from '../utils/response';
 import { AuthenticatedRequest } from '../types';
 import { emitToProject } from '../services/websocket.service';
 import { dispatchAutomationEvent } from '../services/automation.engine';
+import { syncGoalProgressOnIssueChange } from '../services/goal.service';
 
 // ─── Fractional Indexing Helpers ──────────────────────────────────────────────
 
@@ -147,6 +148,7 @@ export async function createIssue(req: AuthenticatedRequest, res: Response) {
     assigneeId,
     parentId,
     customFields,
+    epicId,
   } = req.body;
 
   if (!summary || !statusId || !type) {
@@ -156,6 +158,11 @@ export async function createIssue(req: AuthenticatedRequest, res: Response) {
   try {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) return sendError(res, 404, 'Project not found');
+
+    const status = await prisma.boardColumn.findUnique({ where: { id: statusId }, include: { board: true } });
+    if (!status || status.board.projectId !== projectId) {
+      return sendError(res, 400, 'Invalid statusId for this project');
+    }
 
     const count = await prisma.issue.count({ where: { projectId } });
     const key = `${project.key}-${count + 1}`;
@@ -184,6 +191,7 @@ export async function createIssue(req: AuthenticatedRequest, res: Response) {
           assigneeId: assigneeId || null,
           reporterId: userId!,
           parentId: parentId || null,
+          epicId: epicId || null,
           order: newOrder,
         },
         include: {
@@ -219,6 +227,9 @@ export async function createIssue(req: AuthenticatedRequest, res: Response) {
 
     emitToProject(projectId, 'issue:created', issue);
     dispatchAutomationEvent('issue_created', { projectId, userId, issueId: issue.id, issue });
+    
+    syncGoalProgressOnIssueChange(issue.id, projectId, issue.epicId, issue.parentId);
+
     return sendCreated(res, 'Issue created successfully', issue);
   } catch (error: any) {
     console.error('Create issue error:', error);
@@ -292,6 +303,7 @@ export async function updateIssue(req: AuthenticatedRequest, res: Response) {
     sprintId,
     assigneeId,
     customFields,
+    epicId,
   } = req.body;
 
   try {
@@ -308,6 +320,7 @@ export async function updateIssue(req: AuthenticatedRequest, res: Response) {
     }
     if (assigneeId !== undefined && assigneeId !== original.assigneeId) changes.assigneeId = { from: original.assigneeId, to: assigneeId };
     if (sprintId !== undefined && sprintId !== original.sprintId) changes.sprintId = { from: original.sprintId, to: sprintId };
+    if (epicId !== undefined && epicId !== original.epicId) changes.epicId = { from: original.epicId, to: epicId };
 
     const updated = await prisma.$transaction(async (tx) => {
       const u = await tx.issue.update({
@@ -322,6 +335,7 @@ export async function updateIssue(req: AuthenticatedRequest, res: Response) {
           dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
           sprintId: sprintId !== undefined ? (sprintId || null) : undefined,
           assigneeId: assigneeId !== undefined ? (assigneeId || null) : undefined,
+          epicId: epicId !== undefined ? (epicId || null) : undefined,
         },
         include: {
           assignee: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
@@ -380,6 +394,15 @@ export async function updateIssue(req: AuthenticatedRequest, res: Response) {
       });
     }
 
+    // Sync Goal Progress
+    syncGoalProgressOnIssueChange(updated.id, updated.projectId, updated.epicId, updated.parentId);
+    if (original.epicId && original.epicId !== updated.epicId) {
+      syncGoalProgressOnIssueChange(updated.id, updated.projectId, original.epicId, original.parentId);
+    }
+    if (original.parentId && original.parentId !== updated.parentId) {
+      syncGoalProgressOnIssueChange(updated.id, updated.projectId, original.epicId, original.parentId);
+    }
+
     return sendSuccess(res, 'Issue updated successfully', updated);
   } catch (error: any) {
     console.error('Update issue error:', error);
@@ -392,7 +415,7 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
   const { issueId } = req.params;
   // beforeIssueId = card directly below the drop slot (larger order)
   // afterIssueId  = card directly above the drop slot (smaller order)
-  const { statusId, beforeIssueId, afterIssueId } = req.body;
+  const { statusId, beforeIssueId, afterIssueId, messageId } = req.body;
 
   if (!statusId) {
     return sendError(res, 400, 'Destination statusId is required');
@@ -448,6 +471,7 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
             fromStatusId: original.statusId,
             toStatusId: statusId,
             issue: rebalanced,
+            messageId,
           });
           if (original.statusId !== statusId) {
             dispatchAutomationEvent('issue_status_changed', {
@@ -479,6 +503,7 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
       fromStatusId: original.statusId,
       toStatusId: statusId,
       issue: updated,
+      messageId,
     });
 
     if (original.statusId !== statusId) {
@@ -487,6 +512,8 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
         fromStatusId: original.statusId, toStatusId: statusId,
       });
     }
+
+    syncGoalProgressOnIssueChange(updated.id, updated.projectId, updated.epicId, updated.parentId);
 
     return sendSuccess(res, 'Issue moved successfully', updated);
   } catch (error: any) {
@@ -516,6 +543,9 @@ export async function deleteIssue(req: AuthenticatedRequest, res: Response) {
 
     emitToProject(issue.projectId, 'issue:deleted', { issueId });
     dispatchAutomationEvent('issue_deleted', { projectId: issue.projectId, userId, issueId, issue });
+
+    syncGoalProgressOnIssueChange(issue.id, issue.projectId, issue.epicId, issue.parentId);
+
     return sendSuccess(res, 'Issue soft-deleted successfully');
   } catch (error: any) {
     console.error('Delete issue error:', error);

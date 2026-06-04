@@ -46,10 +46,13 @@ export const getDependencyGraph = async (req: Request, res: Response) => {
       parentId: issue.parentId,
     }));
 
+    const nodeIds = new Set(nodes.map(n => n.id));
     const edges: Array<{ id: string; source: string; target: string; type: string }> = [];
     issues.forEach(issue => {
       issue.outwardLinks.forEach(link => {
-        edges.push({ id: link.id, source: issue.id, target: link.targetId, type: link.linkType });
+        if (nodeIds.has(issue.id) && nodeIds.has(link.targetId)) {
+          edges.push({ id: link.id, source: issue.id, target: link.targetId, type: link.linkType });
+        }
       });
     });
 
@@ -77,8 +80,14 @@ export const getGanttData = async (req: Request, res: Response) => {
         status: { select: { name: true } },
         assignee: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
         sprint: { select: { name: true, startDate: true, endDate: true } },
-        outwardLinks: { where: { linkType: 'BLOCKS' }, select: { targetId: true } },
-        inwardLinks: { where: { linkType: 'BLOCKS' }, select: { sourceId: true } },
+        outwardLinks: {
+          where: { linkType: { in: ['BLOCKS', 'IS_BLOCKED_BY'] } },
+          select: { targetId: true, linkType: true }
+        },
+        inwardLinks: {
+          where: { linkType: { in: ['BLOCKS', 'IS_BLOCKED_BY'] } },
+          select: { sourceId: true, linkType: true }
+        },
       },
       orderBy: [{ sprint: { startDate: 'asc' } }, { createdAt: 'asc' }],
     });
@@ -96,8 +105,14 @@ export const getGanttData = async (req: Request, res: Response) => {
       endDate: issue.dueDate || (issue.sprint?.endDate) || null,
       storyPoints: issue.storyPoints,
       sprintName: issue.sprint?.name,
-      dependencies: issue.inwardLinks.map(l => l.sourceId), // blocked by these
-      dependents: issue.outwardLinks.map(l => l.targetId), // blocks these
+      dependencies: [
+        ...issue.inwardLinks.filter(l => l.linkType === 'BLOCKS').map(l => l.sourceId),
+        ...issue.outwardLinks.filter(l => l.linkType === 'IS_BLOCKED_BY').map(l => l.targetId),
+      ], // blocked by these
+      dependents: [
+        ...issue.outwardLinks.filter(l => l.linkType === 'BLOCKS').map(l => l.targetId),
+        ...issue.inwardLinks.filter(l => l.linkType === 'IS_BLOCKED_BY').map(l => l.sourceId),
+      ], // blocks these
       progress: issue.status.name.toLowerCase().includes('done') ? 100
         : issue.status.name.toLowerCase().includes('progress') ? 50
         : issue.status.name.toLowerCase().includes('review') ? 75
@@ -120,8 +135,15 @@ function calculateCriticalPath(
   nodes: Array<{ id: string; storyPoints: number | null }>,
   edges: Array<{ source: string; target: string; type: string }>
 ): string[] {
-  // Filter only blocking edges
-  const blockingEdges = edges.filter(e => e.type === 'BLOCKS');
+  // Normalize and filter only blocking edges (where blocker -> blocked)
+  const blockingEdges: Array<{ source: string; target: string }> = [];
+  edges.forEach(e => {
+    if (e.type === 'BLOCKS') {
+      blockingEdges.push({ source: e.source, target: e.target });
+    } else if (e.type === 'IS_BLOCKED_BY') {
+      blockingEdges.push({ source: e.target, target: e.source });
+    }
+  });
   if (blockingEdges.length === 0) return [];
 
   // Build adjacency list

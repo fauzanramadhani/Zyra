@@ -10,7 +10,10 @@ export const listRules = async (req: Request, res: Response) => {
       where: { projectId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
-    return success(res, rules.map(r => ({ ...r, approverIds: JSON.parse(r.approverIds) })));
+    return success(res, rules.map(r => ({
+      ...r,
+      approverIds: (() => { try { return JSON.parse(r.approverIds || '[]'); } catch { return []; } })()
+    })));
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -20,6 +23,9 @@ export const createRule = async (req: Request, res: Response) => {
   try {
     const { projectId } = req.params;
     const { name, triggerStatus, targetStatus, requiredApprovals, approverIds, enabled } = req.body;
+    if (!name || !triggerStatus || !targetStatus) {
+      return error(res, 'name, triggerStatus, and targetStatus are required', 400);
+    }
     const rule = await prisma.approvalRule.create({
       data: {
         projectId,
@@ -140,7 +146,7 @@ export const getPendingApprovals = async (req: Request, res: Response) => {
     // Find all rules where user is an approver
     const rules = await prisma.approvalRule.findMany({ where: { deletedAt: null, enabled: true } });
     const userRuleIds = rules.filter(r => {
-      const approvers = JSON.parse(r.approverIds);
+      const approvers = (() => { try { return JSON.parse(r.approverIds || '[]'); } catch { return []; } })();
       return approvers.includes(userId);
     }).map(r => r.id);
 

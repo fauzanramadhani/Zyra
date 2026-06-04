@@ -156,8 +156,9 @@ export const useProjectStore = defineStore('project', {
     ) {
       if (!this.currentBoard) return;
 
-      // Mark this issue as pending local move (skip socket echo)
-      this._pendingMoveIds.add(issueId);
+      const messageId = `${issueId}-${Date.now()}`;
+      // Mark this messageId as pending local move
+      this._pendingMoveIds.add(messageId);
 
       try {
         // Call backend with full positional context
@@ -165,17 +166,16 @@ export const useProjectStore = defineStore('project', {
           statusId: toStatusId,
           beforeIssueId: beforeIssueId || null,
           afterIssueId: afterIssueId || null,
+          messageId,
         });
         // Snapshot no longer needed after success
         this._columnsSnapshot = null;
       } catch (error) {
         console.error('Move failed, rolling back optimistic update...', error);
         this.rollbackColumns();
-        this._pendingMoveIds.delete(issueId);
+        this._pendingMoveIds.delete(messageId);
         return;
       }
-      // Delay removal to cover the race where socket echo arrives after API response
-      setTimeout(() => this._pendingMoveIds.delete(issueId), 2000);
     },
 
     async fetchSprints(projectId: string) {
@@ -233,12 +233,16 @@ export const useProjectStore = defineStore('project', {
       fromStatusId: string;
       toStatusId: string;
       issue: any;
+      messageId?: string;
     }) {
       if (!this.currentBoard) return;
-      const { issueId, fromStatusId, toStatusId, issue } = payload;
+      const { issueId, fromStatusId, toStatusId, issue, messageId } = payload;
 
       // Skip socket echo for moves we initiated (optimistic update already applied)
-      if (this._pendingMoveIds.has(issueId)) return;
+      if (messageId && this._pendingMoveIds.has(messageId)) {
+        this._pendingMoveIds.delete(messageId);
+        return;
+      }
 
       const sourceCol = this.currentBoard.columns.find((c) => c.id === fromStatusId);
       const destCol = this.currentBoard.columns.find((c) => c.id === toStatusId);

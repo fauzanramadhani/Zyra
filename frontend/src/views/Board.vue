@@ -160,10 +160,12 @@
                   {{ card.storyPoints }}
                 </span>
                 <!-- Assignee Avatar -->
-                <img
+                <UserAvatar
                   v-if="card.assignee"
-                  :src="card.assignee.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Devin'"
-                  class="w-6 h-6 rounded-full border border-slate-200 shadow-sm"
+                  :src="card.assignee.avatarUrl || ''"
+                  :firstName="card.assignee.firstName"
+                  :lastName="card.assignee.lastName"
+                  sizeClass="w-6 h-6"
                   :title="`${card.assignee.firstName} ${card.assignee.lastName}`"
                 />
                 <span v-else class="w-6 h-6 rounded-full border border-dashed border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-[10px] text-gray-400" title="Unassigned">
@@ -245,19 +247,20 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { defineComponent, ref, computed, watch, onMounted, onBeforeUnmount, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useProjectStore } from '../store/project';
 import { socket } from '../services/socket';
 import api from '../services/api';
 import IssueModal from '../components/IssueModal.vue';
 import AppDialog from '../components/ui/AppDialog.vue';
+import { UserAvatar } from '../components/ui';
 import { Search as SearchIcon } from 'lucide-vue-next';
 import { VueDraggable } from 'vue-draggable-plus';
 
 export default defineComponent({
   name: 'ProjectBoard',
-  components: { IssueModal, SearchIcon, VueDraggable, AppDialog },
+  components: { IssueModal, SearchIcon, VueDraggable, AppDialog, UserAvatar },
   setup() {
     const route = useRoute();
     const projectStore = useProjectStore();
@@ -392,12 +395,14 @@ export default defineComponent({
       activeColIdx.value = closest;
     };
 
+    let el: HTMLElement | null = null;
     onMounted(() => {
-      boardScrollRef.value?.addEventListener('scroll', updateActiveColIdx, { passive: true });
+      el = boardScrollRef.value;
+      el?.addEventListener('scroll', updateActiveColIdx, { passive: true });
     });
 
-    onUnmounted(() => {
-      boardScrollRef.value?.removeEventListener('scroll', updateActiveColIdx);
+    onBeforeUnmount(() => {
+      el?.removeEventListener('scroll', updateActiveColIdx);
     });
 
     /**

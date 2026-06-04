@@ -22,17 +22,25 @@ export const getMyTimesheet = async (req: Request, res: Response) => {
 
     let timesheet = await prisma.timesheet.findUnique({
       where: { userId_weekStart: { userId, weekStart: weekDate } },
-      include: { entries: { orderBy: { date: 'asc' } } },
+      include: { entries: { orderBy: { createdAt: 'asc' } } },
     });
 
     if (!timesheet) {
       timesheet = await prisma.timesheet.create({
         data: { userId, weekStart: weekDate },
-        include: { entries: { orderBy: { date: 'asc' } } },
+        include: { entries: { orderBy: { createdAt: 'asc' } } },
       });
     }
 
-    return success(res, timesheet);
+    const mappedEntries = timesheet.entries.map((entry: any) => {
+      let parsedHours = [0, 0, 0, 0, 0, 0, 0];
+      try {
+        parsedHours = JSON.parse(entry.hours || '[0,0,0,0,0,0,0]');
+      } catch { /* ignore */ }
+      return { ...entry, hours: parsedHours };
+    });
+
+    return success(res, { ...timesheet, entries: mappedEntries });
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -41,15 +49,19 @@ export const getMyTimesheet = async (req: Request, res: Response) => {
 export const addTimesheetEntry = async (req: Request, res: Response) => {
   try {
     const { timesheetId } = req.params;
-    const { issueId, projectId, date, minutes, description, billable } = req.body;
+    const { issueId, projectId, date, minutes, description, billable, hours } = req.body;
+
+    const entryHours = hours ? (Array.isArray(hours) ? JSON.stringify(hours) : hours) : '[0,0,0,0,0,0,0]';
+    const entryMinutes = minutes || 0;
 
     const entry = await prisma.timesheetEntry.create({
       data: {
         timesheetId,
         issueId,
         projectId,
-        date: new Date(date),
-        minutes,
+        date: date ? new Date(date) : new Date(),
+        minutes: entryMinutes,
+        hours: entryHours,
         description,
         billable: billable !== false,
       },
@@ -60,7 +72,12 @@ export const addTimesheetEntry = async (req: Request, res: Response) => {
     const totalMinutes = entries.reduce((sum, e) => sum + e.minutes, 0);
     await prisma.timesheet.update({ where: { id: timesheetId }, data: { totalMinutes } });
 
-    return success(res, entry, 201);
+    let parsedHours = [0, 0, 0, 0, 0, 0, 0];
+    try {
+      parsedHours = JSON.parse(entry.hours || '[0,0,0,0,0,0,0]');
+    } catch { /* ignore */ }
+
+    return success(res, { ...entry, hours: parsedHours }, 201);
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -69,17 +86,36 @@ export const addTimesheetEntry = async (req: Request, res: Response) => {
 export const updateTimesheetEntry = async (req: Request, res: Response) => {
   try {
     const { entryId } = req.params;
-    const data = req.body;
-    if (data.date) data.date = new Date(data.date);
+    const { hours, description, billable, date } = req.body;
 
-    const entry = await prisma.timesheetEntry.update({ where: { id: entryId }, data });
+    const updateData: any = {};
+    if (description !== undefined) updateData.description = description;
+    if (billable !== undefined) updateData.billable = billable;
+    if (date !== undefined) updateData.date = new Date(date);
+
+    if (hours !== undefined) {
+      updateData.hours = Array.isArray(hours) ? JSON.stringify(hours) : hours;
+      const parsedHours = Array.isArray(hours) ? hours : JSON.parse(hours || '[0,0,0,0,0,0,0]');
+      const totalHours = parsedHours.reduce((sum: number, h: number) => sum + h, 0);
+      updateData.minutes = Math.round(totalHours * 60);
+    }
+
+    const entry = await prisma.timesheetEntry.update({
+      where: { id: entryId },
+      data: updateData,
+    });
 
     // Recalculate total
     const entries = await prisma.timesheetEntry.findMany({ where: { timesheetId: entry.timesheetId } });
     const totalMinutes = entries.reduce((sum, e) => sum + e.minutes, 0);
     await prisma.timesheet.update({ where: { id: entry.timesheetId }, data: { totalMinutes } });
 
-    return success(res, entry);
+    let parsedHours = [0, 0, 0, 0, 0, 0, 0];
+    try {
+      parsedHours = JSON.parse(entry.hours || '[0,0,0,0,0,0,0]');
+    } catch { /* ignore */ }
+
+    return success(res, { ...entry, hours: parsedHours });
   } catch (e: any) {
     return error(res, e.message);
   }

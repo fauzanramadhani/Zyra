@@ -21,11 +21,33 @@ export const createInbox = async (req: Request, res: Response) => {
   try {
     const { projectId } = req.params;
     const { emailAddress, defaultType, defaultPriority, assigneeId } = req.body;
+    if (!emailAddress || !defaultType) {
+      return error(res, 'emailAddress and defaultType are required', 400);
+    }
+
+    // Cek semua record dengan email ini (termasuk soft-deleted)
+    const existing = await prisma.emailInbox.findFirst({
+      where: { emailAddress },
+    });
+
+    if (existing) {
+      if (existing.deletedAt) {
+        // Record sudah soft-deleted — hapus permanen dulu biar unique constraint tidak conflict
+        await prisma.emailInbox.delete({ where: { id: existing.id } });
+      } else {
+        return error(res, `Email address "${emailAddress}" is already in use by another gateway.`, 409);
+      }
+    }
+
     const inbox = await prisma.emailInbox.create({
       data: { projectId, emailAddress, defaultType, defaultPriority, assigneeId },
     });
     return success(res, inbox, 201);
   } catch (e: any) {
+    // Prisma unique constraint violation (safety net)
+    if (e.code === 'P2002' || (e.message && e.message.includes('Unique constraint'))) {
+      return error(res, 'Webhook URL / email address is already in use.', 409);
+    }
     return error(res, e.message);
   }
 };

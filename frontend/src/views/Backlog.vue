@@ -138,17 +138,20 @@
         <div v-show="!collapsedSprints.has(sprint.id)">
           <VueDraggable
             v-model="sprint.issues"
+            :key="sprint.id + '-' + dragKey"
+            :disabled="hasActiveFilters"
             group="backlog-issues"
             :animation="200"
             ghost-class="backlog-ghost"
             drag-class="backlog-drag"
             class="p-2 min-h-[48px] space-y-1"
-            @end="onDragEnd(sprint.id)"
+            @add="(evt) => onSprintAdd(evt, sprint.id)"
           >
             <BacklogIssueCard
               v-for="issue in filteredSprintIssues(sprint)"
               :key="issue.id"
               :issue="issue"
+              :data-id="issue.id"
               :selected="selectedIssues.includes(issue.id)"
               @toggle-select="toggleSelect"
             />
@@ -179,17 +182,20 @@
         <div v-show="!backlogCollapsed">
           <VueDraggable
             v-model="backlogIssues"
+            :key="'backlog-' + dragKey"
+            :disabled="hasActiveFilters"
             group="backlog-issues"
             :animation="200"
             ghost-class="backlog-ghost"
             drag-class="backlog-drag"
             class="p-2 min-h-[48px] space-y-1"
-            @end="onDragEnd(null)"
+            @add="onBacklogAdd"
           >
             <BacklogIssueCard
               v-for="issue in filteredBacklogIssues"
               :key="issue.id"
               :issue="issue"
+              :data-id="issue.id"
               :selected="selectedIssues.includes(issue.id)"
               @toggle-select="toggleSelect"
             />
@@ -241,6 +247,7 @@ import SprintEditDialog from '../components/sprint/SprintEditDialog.vue';
 import SprintCompleteDialog from '../components/sprint/SprintCompleteDialog.vue';
 import SprintStatsCard from '../components/sprint/SprintStatsCard.vue';
 import api from '../services/api';
+import { useToastStore } from '../store/toast';
 import { socket, joinProject, leaveProject } from '../services/socket';
 
 export default defineComponent({
@@ -249,6 +256,7 @@ export default defineComponent({
   setup() {
     const route = useRoute();
     const projectStore = useProjectStore();
+    const toast = useToastStore();
     const projectId = computed(() => route.params.projectId as string);
 
     // Data
@@ -263,6 +271,7 @@ export default defineComponent({
     const bulkSprintTarget = ref('');
     const showStatsDrawer = ref(false);
     const activeSprintStats = ref<any>(null);
+    const dragKey = ref(0);
 
     // Filters
     const searchQuery = ref('');
@@ -325,6 +334,7 @@ export default defineComponent({
         assignees.value = allIssues
           .filter((i: any) => i.assignee && !seen.has(i.assigneeId) && seen.add(i.assigneeId))
           .map((i: any) => i.assignee);
+        dragKey.value++;
       } catch (err) {
         console.error('Failed to load backlog data:', err);
       }
@@ -342,26 +352,34 @@ export default defineComponent({
     watch(projectId, loadData, { immediate: true });
     watch(() => sprints.value, loadSprintStats, { deep: true });
 
-    // Drag & Drop
-    const onDragEnd = async (_targetSprintId: string | null) => {
-      // After drag, sync the issue's sprintId with the backend
-      for (const sprint of sprints.value) {
-        for (const issue of sprint.issues || []) {
-          if (issue.sprintId !== sprint.id) {
-            try {
-              await api.patch(`/issues/${issue.id}`, { sprintId: sprint.id });
-              issue.sprintId = sprint.id;
-            } catch { await loadData(); return; }
-          }
-        }
+    // Drag & Drop targeted handlers
+    const onSprintAdd = async (evt: any, sprintId: string) => {
+      const issueId = evt.item.getAttribute('data-id');
+      if (!issueId) return;
+      try {
+        await api.patch(`/issues/${issueId}`, { sprintId });
+        // Update local issue properties
+        const allIssues = [...backlogIssues.value, ...sprints.value.flatMap(s => s.issues || [])];
+        const issue = allIssues.find(i => i.id === issueId);
+        if (issue) issue.sprintId = sprintId;
+      } catch (err) {
+        console.error('Failed to move issue to sprint:', err);
+        await loadData();
       }
-      for (const issue of backlogIssues.value) {
-        if (issue.sprintId) {
-          try {
-            await api.patch(`/issues/${issue.id}`, { sprintId: null });
-            issue.sprintId = null;
-          } catch { await loadData(); return; }
-        }
+    };
+
+    const onBacklogAdd = async (evt: any) => {
+      const issueId = evt.item.getAttribute('data-id');
+      if (!issueId) return;
+      try {
+        await api.patch(`/issues/${issueId}`, { sprintId: null });
+        // Update local issue properties
+        const allIssues = [...backlogIssues.value, ...sprints.value.flatMap(s => s.issues || [])];
+        const issue = allIssues.find(i => i.id === issueId);
+        if (issue) issue.sprintId = null;
+      } catch (err) {
+        console.error('Failed to move issue to backlog:', err);
+        await loadData();
       }
     };
 
@@ -479,7 +497,10 @@ export default defineComponent({
         selectedIssues.value = [];
         bulkSprintTarget.value = '';
         await loadData();
-      } catch { /* ignore */ }
+        toast.success('Issues moved successfully');
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || 'Failed to move issues');
+      }
     };
 
     const bulkDelete = async () => {
@@ -489,7 +510,10 @@ export default defineComponent({
         await api.post('/issues/bulk-delete', { issueIds: selectedIssues.value });
         selectedIssues.value = [];
         await loadData();
-      } catch { /* ignore */ }
+        toast.success('Issues deleted successfully');
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || 'Failed to delete issues');
+      }
     };
 
     // Helpers
@@ -500,7 +524,7 @@ export default defineComponent({
         COMPLETED: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',
         ARCHIVED: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
       };
-      return map[status] || map.FUTURE;
+      return map[status] || 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
     };
 
     const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -528,11 +552,11 @@ export default defineComponent({
       showStatsDrawer, activeSprintStats,
       searchQuery, filterType, filterPriority, filterAssignee,
       hasActiveFilters, sortedSprints, filteredSprintIssues, filteredBacklogIssues,
-      clearFilters, onDragEnd,
+      clearFilters, onSprintAdd, onBacklogAdd,
       showEditDialog, editingSprint, showCompleteDialog, completingSprint,
       handleSprintAction, openCreateSprint, handleSprintSubmit, handleCompleteSprint,
       toggleSelect, toggleCollapse, bulkMoveToSprint, bulkDelete,
-      sprintStatusClass, formatDate,
+      sprintStatusClass, formatDate, dragKey,
     };
   },
 });

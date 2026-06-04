@@ -4,12 +4,39 @@
     <div class="mb-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-xl font-bold text-slate-800 dark:text-white">Issue Templates</h1>
+          <h1 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            Issue Templates
+            <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
+              <HelpCircleIcon class="w-4 h-4" />
+            </button>
+          </h1>
           <p class="text-xs text-slate-400 mt-0.5">Speed up issue creation with predefined templates</p>
         </div>
         <button @click="showCreateModal = true" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition shadow-sm">
           + New Template
         </button>
+      </div>
+    </div>
+
+    <!-- Glassmorphic Help Card -->
+    <div v-if="showHelp" class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm relative transition duration-300">
+      <button @click="showHelp = false" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+        <XIcon class="w-4 h-4" />
+      </button>
+      <div class="flex items-start gap-3.5">
+        <div class="w-9 h-9 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-500 flex-shrink-0">
+          <HelpCircleIcon class="w-5 h-5" />
+        </div>
+        <div class="flex-1 min-w-0 pr-4">
+          <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">📝 Reusable Issue Templates</h3>
+          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+            Issue Templates speed up team operations by providing preset structures, summary naming prefixes, and descriptions for commonly reported tasks.
+          </p>
+          <ul class="text-xs text-slate-500 dark:text-slate-400 mt-2 space-y-1.5 pl-4 list-disc">
+            <li><strong>Standard Preset Fields</strong>: Pre-populate type (Task, Bug, Story), default priorities, and story points.</li>
+            <li><strong>Quick Issue Creation</strong>: Apply these templates directly inside the new issue modal to accelerate sprint planning.</li>
+          </ul>
+        </div>
       </div>
     </div>
 
@@ -121,17 +148,18 @@
 import { defineComponent, ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../services/api';
-import { Pencil as PencilIcon, Trash2 as TrashIcon, FileText as FileTextIcon, AlertTriangle as AlertTriangleIcon } from 'lucide-vue-next';
+import { Pencil as PencilIcon, Trash2 as TrashIcon, FileText as FileTextIcon, AlertTriangle as AlertTriangleIcon, HelpCircle as HelpCircleIcon, X as XIcon } from 'lucide-vue-next';
 import SelectDropdown from '../components/SelectDropdown.vue';
 
 export default defineComponent({
   name: 'Templates',
-  components: { PencilIcon, TrashIcon, FileTextIcon, AlertTriangleIcon, SelectDropdown },
+  components: { PencilIcon, TrashIcon, FileTextIcon, AlertTriangleIcon, SelectDropdown, HelpCircleIcon, XIcon },
   setup() {
     const route = useRoute();
     const projectId = computed(() => route.params.projectId as string);
     const templates = ref<any[]>([]);
     const loading = ref(false);
+    const showHelp = ref(true);
     const showCreateModal = ref(false);
     const editingTemplate = ref<any>(null);
     const form = ref({ name: '', type: 'TASK', summary: '', description: '', priority: '', storyPoints: null as number | null });
@@ -212,7 +240,7 @@ export default defineComponent({
 
     onMounted(fetchTemplates);
 
-    return { templates, loading, showCreateModal, editingTemplate, form, saveTemplate, editTemplate, deleteTemplate, closeModal, typeOptions, priorityOptions, showDeleteConfirm, deleteTarget, confirmDelete };
+    return { templates, loading, showCreateModal, editingTemplate, form, saveTemplate, editTemplate, deleteTemplate, closeModal, typeOptions, priorityOptions, showDeleteConfirm, deleteTarget, confirmDelete, showHelp };
   },
 });
 </script>
