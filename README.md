@@ -246,7 +246,7 @@ An open-source alternative to Jira for project management and issue tracking. Bu
 ### Production Environment
 | Service | Port | Description |
 |---------|------|-------------|
-| Frontend (Vite preview) | 80 | Compiled static files served via Node.js |
+| Frontend (Vite preview) | 3000 | Compiled static files served via Node.js |
 | Backend (Express) | 5000 | Compiled app in production mode |
 | PostgreSQL | 5432 | Database |
 | Redis | 6379 | Message Broker (BullMQ) |
@@ -289,10 +289,10 @@ To build and start the optimized production environment:
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 * **Optimized Build**: Compiles TypeScript backend and Vite frontend into optimized build bundles (no source code directories are mounted).
-* **Vite Preview on Node**: Serves the frontend statically on port `80` using a Node.js-based preview engine (no Nginx dependency).
+* **Vite Preview on Node**: Serves the frontend statically on port `3000` using a Node.js-based preview engine.
 * **Security Hardening**: Development client tools (Adminer, RedisInsight) are disabled/hidden.
 * **Auto-Schema & Idempotent Seed**: Database pushes schema updates automatically. The seed script checks for existing users first, keeping your production data safe.
-* **Access App**: http://localhost
+* **Access App**: http://localhost:3000
 * **Stop Services Safely**: `docker compose -f docker-compose.prod.yml down` (never use `-v` in production to prevent volume loss).
 
 ---

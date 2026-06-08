@@ -12,9 +12,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --only=production
 COPY --from=builder /app/dist ./dist
-EXPOSE 80
-# Run Vite preview to serve build files on port 80
-CMD ["npm", "run", "preview", "--", "--host", "--port", "80"]
+EXPOSE 3000
+# Run Vite preview to serve build files on port 3000
+CMD ["npm", "run", "preview", "--", "--host", "--port", "3000"]
 
 # Stage 3: Development (default)
 FROM node:18-alpine AS development
