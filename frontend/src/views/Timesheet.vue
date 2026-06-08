@@ -1,16 +1,20 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
-          Timesheets
-          <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
-            <HelpCircleIcon class="w-5 h-5" />
-          </button>
-        </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Track time spent on issues</p>
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+            Timesheets
+            <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
+              <HelpCircleIcon class="w-5 h-5" />
+            </button>
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Track time spent on issues</p>
+        </div>
       </div>
     </div>
+
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
 
     <!-- Glassmorphic Help Card -->
     <div v-if="showHelp" class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm relative transition duration-300">
@@ -141,7 +145,7 @@ export default defineComponent({
     const fetchTimesheet = async () => {
       loading.value = true;
       try {
-        const { data } = await api.get(`/timesheets/me?weekStart=${weekStart.value.toISOString()}`);
+        const { data } = await api.get(`/timesheets/me?weekStart=${weekStart.value.toISOString()}&projectId=${projectId.value}`);
         timesheet.value = data.data;
         entries.value = data.data?.entries || [];
       } catch { timesheet.value = null; entries.value = []; } finally { loading.value = false; }
@@ -149,7 +153,7 @@ export default defineComponent({
 
     const createTimesheet = async () => {
       try {
-        const { data } = await api.get(`/timesheets/me?weekStart=${weekStart.value.toISOString()}`);
+        const { data } = await api.get(`/timesheets/me?weekStart=${weekStart.value.toISOString()}&projectId=${projectId.value}`);
         timesheet.value = data.data;
         entries.value = data.data?.entries || [];
         toast.success('Timesheet created');

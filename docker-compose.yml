@@ -43,6 +43,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: development
     container_name: zyra_backend
     restart: always
     environment:
@@ -76,6 +77,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
     container_name: zyra_frontend
     restart: always
     environment:

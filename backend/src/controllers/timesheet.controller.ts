@@ -6,7 +6,11 @@ import { success, error } from '../utils/response';
 export const getMyTimesheet = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const { weekStart } = req.query;
+    const { weekStart, projectId } = req.query;
+
+    if (!projectId) {
+      return error(res, 'projectId is required', 400);
+    }
 
     let weekDate: Date;
     if (weekStart) {
@@ -21,13 +25,13 @@ export const getMyTimesheet = async (req: Request, res: Response) => {
     }
 
     let timesheet = await prisma.timesheet.findUnique({
-      where: { userId_weekStart: { userId, weekStart: weekDate } },
+      where: { userId_projectId_weekStart: { userId, projectId: projectId as string, weekStart: weekDate } },
       include: { entries: { orderBy: { createdAt: 'asc' } } },
     });
 
     if (!timesheet) {
       timesheet = await prisma.timesheet.create({
-        data: { userId, weekStart: weekDate },
+        data: { userId, projectId: projectId as string, weekStart: weekDate },
         include: { entries: { orderBy: { createdAt: 'asc' } } },
       });
     }
@@ -179,7 +183,7 @@ export const getTimeReport = async (req: Request, res: Response) => {
     const { projectId } = req.params;
     const { startDate, endDate, userId } = req.query;
 
-    const where: any = { projectId };
+    const where: any = { projectId, timesheet: { projectId } };
     if (startDate && endDate) {
       where.date = { gte: new Date(startDate as string), lte: new Date(endDate as string) };
     }
@@ -228,11 +232,14 @@ export const getTimeReport = async (req: Request, res: Response) => {
 export const getUserTimeSummary = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const { weeks } = req.query;
+    const { weeks, projectId } = req.query;
+    if (!projectId) {
+      return error(res, 'projectId is required', 400);
+    }
     const numWeeks = parseInt(weeks as string) || 4;
 
     const timesheets = await prisma.timesheet.findMany({
-      where: { userId },
+      where: { userId, projectId: projectId as string },
       include: { entries: true },
       orderBy: { weekStart: 'desc' },
       take: numWeeks,

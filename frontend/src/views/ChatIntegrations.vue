@@ -1,15 +1,19 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Chat Integrations</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Send notifications to Slack or Discord</p>
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Chat Integrations</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Send notifications to Slack or Discord</p>
+        </div>
+        <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
+          <PlusIcon class="w-4 h-4" />
+          Add Integration
+        </button>
       </div>
-      <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
-        <PlusIcon class="w-4 h-4" />
-        Add Integration
-      </button>
     </div>
+
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
 
     <div v-if="loading" class="flex justify-center py-20">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
@@ -46,6 +50,8 @@
       <h3 class="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2">No chat integrations</h3>
       <p class="text-sm text-slate-400 mb-4">Connect Slack or Discord to receive project notifications</p>
       <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition">Add Integration</button>
+    </div>
+
     </div>
 
     <!-- Create Modal -->

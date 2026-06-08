@@ -1,5 +1,6 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0">
     <!-- Back Navigation for Workspace Dashboard -->
     <div v-if="!isProjectView" class="mb-4">
       <router-link to="/workspace" class="text-sm text-orange-500 font-bold hover:underline flex items-center gap-1">
@@ -24,6 +25,9 @@
         New Goal
       </button>
     </div>
+    </div>
+
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
 
     <!-- Help Card -->
     <div v-if="showHelp" class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm relative transition duration-300">
@@ -162,6 +166,8 @@
       <h3 class="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2">No goals found</h3>
       <p class="text-sm text-slate-400 mb-4">No objectives or key results match the current project context or filters.</p>
       <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition">Create Goal</button>
+    </div>
+
     </div>
 
     <!-- Goal Detail Drawer -->

@@ -78,6 +78,25 @@ export async function createProject(req: AuthenticatedRequest, res: Response) {
         },
       });
 
+      // Create default workflow matching columns
+      const wf = await tx.workflow.create({
+        data: {
+          name: `${name} Workflow`,
+          description: `Default workflow for project ${name}`,
+          projectId: p.id,
+          isDefault: true,
+          states: {
+            create: [
+              { name: 'To Do', category: 'TODO', color: '#6B7280', position: 0 },
+              { name: 'In Progress', category: 'IN_PROGRESS', color: '#3B82F6', position: 1 },
+              { name: 'In Review', category: 'IN_PROGRESS', color: '#F59E0B', position: 2 },
+              { name: 'Done', category: 'DONE', color: '#10B981', position: 3 },
+            ]
+          }
+        },
+        include: { states: true }
+      });
+
       // Create default Kanban board
       const b = await tx.board.create({
         data: {
@@ -87,14 +106,14 @@ export async function createProject(req: AuthenticatedRequest, res: Response) {
         },
       });
 
-      // Create default board columns
-      const columns = ['To Do', 'In Progress', 'In Review', 'Done'];
-      for (let i = 0; i < columns.length; i++) {
+      // Create default board columns linked to workflowStateId
+      for (const state of wf.states) {
         await tx.boardColumn.create({
           data: {
-            name: columns[i],
-            position: i,
+            name: state.name,
+            position: state.position,
             boardId: b.id,
+            workflowStateId: state.id,
           },
         });
       }

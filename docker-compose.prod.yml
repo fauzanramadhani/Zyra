@@ -1,0 +1,98 @@
+services:
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: zyra_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_postgres_pwd_123}
+      POSTGRES_DB: ${POSTGRES_DB:-zyra}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - zyra_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-zyra}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis Service (Queue & Caching)
+  redis:
+    image: redis:7-alpine
+    container_name: zyra_redis_prod
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - zyra_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend Service (Express + TypeScript + Socket.IO + BullMQ + Prisma)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: zyra_backend_prod
+    restart: always
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-secure_postgres_pwd_123}@postgres:5432/${POSTGRES_DB:-zyra}?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-super_secret_zyra_access_key_2026_change_me}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-super_secret_zyra_refresh_key_2026_change_me}
+      - JWT_ACCESS_EXPIRY=15m
+      - JWT_REFRESH_EXPIRY=7d
+      - UPLOAD_DIR=/app/uploads
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zyra_network
+    # Run migrations, auto-seed database, and start the production server
+    command: sh -c "npx prisma db push && npm run seed && npm start"
+
+  # Frontend Service (Vue 3 + Vite + TailwindCSS served via Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: zyra_frontend_prod
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - zyra_network
+    depends_on:
+      - backend
+
+networks:
+  zyra_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: zyra_postgres_data_prod
+  redis_data:
+    name: zyra_redis_data_prod
+  uploads_data:
+    name: zyra_uploads_data_prod

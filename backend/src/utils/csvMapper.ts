@@ -16,6 +16,9 @@ export function suggestFieldMapping(header: string): string | null {
     labels: ['labels', 'tags', 'categories'],
     storyPoints: ['storypoints', 'sp', 'points'],
     type: ['issuetype', 'type', 'tickettype', 'kind'],
+    parentKey: ['parentkey', 'parent', 'epiclink', 'parentid'],
+    sprint: ['sprint', 'sprintname', 'sprintid'],
+    dueDate: ['duedate', 'due', 'deadlinetime', 'deadline'],
   };
 
   // 1. Direct alias check

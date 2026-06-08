@@ -5,9 +5,11 @@ import { success, error } from '../utils/response';
 // --- Wiki Spaces ---
 export const listSpaces = async (req: Request, res: Response) => {
   try {
-    const { workspaceId } = req.query;
-    const where: any = { deletedAt: null };
-    if (workspaceId) where.workspaceId = workspaceId;
+    const { projectId } = req.query;
+    if (!projectId) {
+      return error(res, 'projectId is required', 400);
+    }
+    const where: any = { deletedAt: null, projectId: projectId as string };
 
     const spaces = await prisma.wikiSpace.findMany({
       where,
@@ -22,25 +24,25 @@ export const listSpaces = async (req: Request, res: Response) => {
 
 export const createSpace = async (req: Request, res: Response) => {
   try {
-    const { name, description, projectId, workspaceId } = req.body;
+    const { name, description, projectId } = req.body;
 
-    let finalWorkspaceId = workspaceId;
-    if (!finalWorkspaceId && projectId) {
-      const project = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { workspaceId: true }
-      });
-      if (project) {
-        finalWorkspaceId = project.workspaceId;
-      }
+    if (!projectId) {
+      return error(res, 'projectId is required', 400);
     }
 
-    if (!finalWorkspaceId) {
-      return error(res, 'workspaceId is required', 400);
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { workspaceId: true }
+    });
+
+    if (!project) {
+      return error(res, 'Project not found', 404);
     }
+
+    const workspaceId = project.workspaceId;
 
     const space = await prisma.wikiSpace.create({
-      data: { name, description, projectId, workspaceId: finalWorkspaceId },
+      data: { name, description, projectId, workspaceId },
     });
     return success(res, space, 201);
   } catch (e: any) {

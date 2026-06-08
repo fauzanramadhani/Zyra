@@ -70,6 +70,25 @@ async function main() {
     },
   });
 
+  // Create default workflow for seeded project
+  const wf = await prisma.workflow.create({
+    data: {
+      name: 'Phoenix System Workflow',
+      description: 'Default workflow for project Phoenix System',
+      projectId: project.id,
+      isDefault: true,
+      states: {
+        create: [
+          { name: 'To Do', category: 'TODO', color: '#6B7280', position: 0 },
+          { name: 'In Progress', category: 'IN_PROGRESS', color: '#3B82F6', position: 1 },
+          { name: 'In Review', category: 'IN_PROGRESS', color: '#F59E0B', position: 2 },
+          { name: 'Done', category: 'DONE', color: '#10B981', position: 3 },
+        ]
+      }
+    },
+    include: { states: true }
+  });
+
   await prisma.projectMember.createMany({
     data: [
       { projectId: project.id, userId: admin.id, role: 'ADMIN' },
@@ -88,18 +107,21 @@ async function main() {
     },
   });
 
+  // Helper to resolve seeded workflow state ID
+  const getWfStateId = (name: string) => wf.states.find(s => s.name === name)?.id || null;
+
   // 6. Create Board Columns (Workflow statuses)
   const todoCol = await prisma.boardColumn.create({
-    data: { name: 'To Do', position: 0, boardId: board.id },
+    data: { name: 'To Do', position: 0, boardId: board.id, workflowStateId: getWfStateId('To Do') },
   });
   const inProgressCol = await prisma.boardColumn.create({
-    data: { name: 'In Progress', position: 1, boardId: board.id },
+    data: { name: 'In Progress', position: 1, boardId: board.id, workflowStateId: getWfStateId('In Progress') },
   });
   const inReviewCol = await prisma.boardColumn.create({
-    data: { name: 'In Review', position: 2, boardId: board.id },
+    data: { name: 'In Review', position: 2, boardId: board.id, workflowStateId: getWfStateId('In Review') },
   });
   const doneCol = await prisma.boardColumn.create({
-    data: { name: 'Done', position: 3, boardId: board.id },
+    data: { name: 'Done', position: 3, boardId: board.id, workflowStateId: getWfStateId('Done') },
   });
 
   console.log('Columns seeded successfully');

@@ -3,6 +3,7 @@ import { redisConnection } from '../services/import.queue';
 import prisma from '../db';
 import { emitToProject, emitToUser } from '../services/websocket.service';
 import { AutomationContext } from '../services/automation.engine';
+import { IssueService } from '../services/issue.service';
 
 interface AutomationJobData {
   ruleId: string;
@@ -193,19 +194,15 @@ async function execCreateSubtask(params: any, ctx: AutomationContext, start: num
   if (!parent) {
     return { actionType: 'create_subtask', success: false, message: 'Parent issue not found', duration: Date.now() - start };
   }
-  const count = await prisma.issue.count({ where: { projectId: ctx.projectId } });
-  const project = await prisma.project.findUnique({ where: { id: ctx.projectId } });
-  await prisma.issue.create({
-    data: {
-      key: `${project?.key || 'TASK'}-${count + 1}`,
-      summary: params.title,
-      type: 'SUB_TASK',
-      priority: 'MEDIUM',
-      projectId: ctx.projectId,
-      parentId: ctx.issueId,
-      reporterId: ctx.userId || parent.reporterId,
-      statusId: parent.statusId,
-    },
+  
+  await IssueService.createIssue({
+    projectId: ctx.projectId,
+    summary: params.title,
+    type: 'SUB_TASK',
+    statusId: parent.statusId,
+    priority: 'MEDIUM',
+    parentId: ctx.issueId,
+    reporterId: ctx.userId || parent.reporterId,
   });
   return { actionType: 'create_subtask', success: true, message: 'Subtask created', duration: Date.now() - start };
 }

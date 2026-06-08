@@ -1,72 +1,74 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto text-slate-800 dark:text-slate-200">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
-          Recurring Issues
-          <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+            Recurring Issues
+            <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
+              <HelpCircleIcon class="w-5 h-5" />
+            </button>
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Automatically create issues on a schedule</p>
+        </div>
+        <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-bold hover:bg-orange-600 shadow-lg shadow-orange-500/20 transition flex items-center gap-2">
+          <PlusIcon class="w-4 h-4" />
+          New Recurring Issue
+        </button>
+      </div>
+
+      <!-- Glassmorphic Help Card -->
+      <div v-if="showHelp" class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm relative transition duration-300">
+        <button @click="showHelp = false" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+          <XIcon class="w-4 h-4" />
+        </button>
+        <div class="flex items-start gap-3.5">
+          <div class="w-9 h-9 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-550 flex-shrink-0">
             <HelpCircleIcon class="w-5 h-5" />
-          </button>
-        </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Automatically create issues on a schedule</p>
-      </div>
-      <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-bold hover:bg-orange-600 shadow-lg shadow-orange-500/20 transition flex items-center gap-2">
-        <PlusIcon class="w-4 h-4" />
-        New Recurring Issue
-      </button>
-    </div>
-
-    <!-- Glassmorphic Help Card -->
-    <div v-if="showHelp" class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm relative transition duration-300">
-      <button @click="showHelp = false" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
-        <XIcon class="w-4 h-4" />
-      </button>
-      <div class="flex items-start gap-3.5">
-        <div class="w-9 h-9 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-500 flex-shrink-0">
-          <HelpCircleIcon class="w-5 h-5" />
-        </div>
-        <div class="flex-1 min-w-0 pr-4">
-          <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">🔁 Scheduled Recurring Issues</h3>
-          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-            Recurring Issues automate repetitive, periodic task creations using Cron-scheduled background job queues.
-          </p>
-          <ul class="text-xs text-slate-500 dark:text-slate-400 mt-2 space-y-1.5 pl-4 list-disc">
-            <li><strong>Automated Trigger Intervals</strong>: Scope schedules to Daily, Weekly, Biweekly, or Monthly.</li>
-            <li><strong>Execution Testing</strong>: Click the green Play icon to test the automation and generate an issue instantly.</li>
-          </ul>
+          </div>
+          <div class="flex-1 min-w-0 pr-4">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">🔁 Scheduled Recurring Issues</h3>
+            <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+              Recurring Issues automate repetitive, periodic task creations using Cron-scheduled background job queues.
+            </p>
+            <ul class="text-xs text-slate-500 dark:text-slate-400 mt-2 space-y-1.5 pl-4 list-disc">
+              <li><strong>Automated Trigger Intervals</strong>: Scope schedules to Daily, Weekly, Biweekly, or Monthly.</li>
+              <li><strong>Execution Testing</strong>: Click the green Play icon to test the automation and generate an issue instantly.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-20">
+    <div v-if="loading" class="flex-grow flex items-center justify-center py-20">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
     </div>
 
-    <div v-else-if="items.length" class="space-y-3">
+    <div v-else-if="items.length" class="flex-grow overflow-y-auto min-h-0 pr-1 space-y-3">
       <div v-for="item in items" :key="item.id" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm hover:shadow-md transition duration-300">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
-            <button @click="toggleEnabled(item)" class="relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0" :class="item.enabled ? 'bg-orange-500' : 'bg-slate-300 dark:bg-slate-650'">
+            <button @click="toggleEnabled(item)" class="relative w-10 h-5 rounded-full transition-colors duration-200 flex-shrink-0" :class="item.enabled ? 'bg-orange-500' : 'bg-slate-300 dark:bg-slate-655'">
               <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200" :class="item.enabled ? 'translate-x-5' : ''"></span>
             </button>
             <div>
               <h3 class="font-bold text-slate-800 dark:text-white text-sm">{{ item.parsedTemplate?.summary || 'Untitled' }}</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap gap-x-2 gap-y-1 items-center">
+              <p class="text-xs text-slate-550 dark:text-slate-400 mt-1 flex flex-wrap gap-x-2 gap-y-1 items-center">
                 <span class="px-1.5 py-0.5 rounded bg-orange-500/10 dark:bg-orange-500/20 text-orange-500 font-extrabold text-[9px] uppercase tracking-wider">{{ item.schedule }}</span>
-                <span class="text-slate-300 dark:text-slate-600">·</span>
+                <span class="text-slate-350 dark:text-slate-600">·</span>
                 <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 font-semibold text-[10px] uppercase text-slate-600 dark:text-slate-350">{{ item.parsedTemplate?.type || 'TASK' }}</span>
-                <span class="text-slate-300 dark:text-slate-600">·</span>
+                <span class="text-slate-355 dark:text-slate-600">·</span>
                 <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 font-semibold text-[10px] uppercase text-slate-600 dark:text-slate-350">{{ item.parsedTemplate?.priority || 'MEDIUM' }}</span>
-                <span v-if="item.nextRunAt" class="text-slate-300 dark:text-slate-600">·</span>
+                <span v-if="item.nextRunAt" class="text-slate-360 dark:text-slate-600">·</span>
                 <span v-if="item.nextRunAt" class="text-slate-400 dark:text-slate-550">Next: {{ formatDate(item.nextRunAt) }}</span>
               </p>
             </div>
           </div>
           <div class="flex items-center gap-1.5">
-            <button @click="triggerNow(item.id)" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-green-500 transition" title="Trigger now">
+            <button @click="triggerNow(item.id)" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-400 hover:text-green-550 transition" title="Trigger now">
               <PlayIcon class="w-5 h-5" />
             </button>
-            <button @click="deleteItem(item.id)" class="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl text-slate-400 hover:text-red-500 transition">
+            <button @click="deleteItem(item.id)" class="p-2 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl text-slate-400 hover:text-red-550 transition">
               <Trash2Icon class="w-5 h-5" />
             </button>
           </div>
@@ -74,7 +76,7 @@
       </div>
     </div>
 
-    <div v-else class="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+    <div v-else class="flex-grow flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
       <RepeatIcon class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
       <h3 class="text-lg font-bold text-slate-750 dark:text-slate-200 mb-2">No recurring issues configured</h3>
       <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">Schedule automatic issue creation for recurring project setups, audits, and checklists</p>

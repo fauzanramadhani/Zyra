@@ -1,16 +1,19 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Git Integration</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Connect repositories and track commits, branches, and PRs</p>
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Git Integration</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Connect repositories and track commits, branches, and PRs</p>
+        </div>
+        <button @click="openConnectModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
+          <PlusIcon class="w-4 h-4" />
+          Connect Repository
+        </button>
       </div>
-      <button @click="openConnectModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
-        <PlusIcon class="w-4 h-4" />
-        Connect Repository
-      </button>
     </div>
+
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-20">
@@ -57,6 +60,8 @@
       <h3 class="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2">No repositories connected</h3>
       <p class="text-sm text-slate-400 mb-4">Connect GitHub, GitLab, or Bitbucket to link commits and PRs to issues</p>
       <button @click="openConnectModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition">Connect Repository</button>
+    </div>
+
     </div>
 
     <!-- Connect Modal -->

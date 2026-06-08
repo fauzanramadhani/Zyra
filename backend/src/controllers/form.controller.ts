@@ -72,6 +72,8 @@ export const deleteForm = async (req: Request, res: Response) => {
   }
 };
 
+import { IssueService } from '../services/issue.service';
+
 // --- Public Submission (No Auth Required) ---
 export const submitForm = async (req: Request, res: Response) => {
   try {
@@ -92,23 +94,14 @@ export const submitForm = async (req: Request, res: Response) => {
     const todoCol = project.boards[0]?.columns[0];
     if (!todoCol) return error(res, 'No board column', 400);
 
-    // Generate issue key
-    const lastIssue = await prisma.issue.findFirst({ where: { projectId: project.id }, orderBy: { createdAt: 'desc' } });
-    const nextNum = lastIssue ? parseInt(lastIssue.key.split('-')[1]) + 1 : 1;
-    const key = `${project.key}-${nextNum}`;
-
-    // Get lead as reporter
-    const issue = await prisma.issue.create({
-      data: {
-        key,
-        summary: formData.summary || formData.title || 'Form Submission',
-        description: formData.description || JSON.stringify(formData),
-        type: form.defaultType,
-        priority: form.defaultPriority,
-        statusId: todoCol.id,
-        projectId: project.id,
-        reporterId: project.leadId,
-      },
+    const issue = await IssueService.createIssue({
+      projectId: project.id,
+      summary: formData.summary || formData.title || 'Form Submission',
+      type: form.defaultType,
+      statusId: todoCol.id,
+      description: formData.description || JSON.stringify(formData),
+      priority: form.defaultPriority,
+      reporterId: project.leadId,
     });
 
     const submission = await prisma.formSubmission.create({

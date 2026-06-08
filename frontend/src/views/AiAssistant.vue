@@ -1,13 +1,16 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800 dark:text-white">AI Assistant</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Smart suggestions powered by AI</p>
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800 dark:text-white">AI Assistant</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Smart suggestions powered by AI</p>
+        </div>
       </div>
     </div>
 
     <!-- Feature Cards -->
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Smart Assign -->
       <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
@@ -111,6 +114,8 @@
         </div>
       </div>
     </div>
+    </div>
+
   </div>
 </template>
 

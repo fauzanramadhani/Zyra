@@ -133,6 +133,8 @@ export async function listIssues(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+import { IssueService } from '../services/issue.service';
+
 export async function createIssue(req: AuthenticatedRequest, res: Response) {
   const userId = req.user?.id;
   const { projectId } = req.params;
@@ -156,84 +158,27 @@ export async function createIssue(req: AuthenticatedRequest, res: Response) {
   }
 
   try {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) return sendError(res, 404, 'Project not found');
-
-    const status = await prisma.boardColumn.findUnique({ where: { id: statusId }, include: { board: true } });
-    if (!status || status.board.projectId !== projectId) {
-      return sendError(res, 400, 'Invalid statusId for this project');
-    }
-
-    const count = await prisma.issue.count({ where: { projectId } });
-    const key = `${project.key}-${count + 1}`;
-
-    // Find the max order in the target column so new issues go to the bottom
-    const lastInColumn = await prisma.issue.findFirst({
-      where: { statusId, deletedAt: null },
-      orderBy: { order: 'desc' },
-      select: { order: true },
+    const issue = await IssueService.createIssue({
+      projectId,
+      summary,
+      type,
+      statusId,
+      description,
+      priority,
+      storyPoints: storyPoints ? parseFloat(storyPoints) : null,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      sprintId,
+      assigneeId,
+      reporterId: userId!,
+      parentId,
+      epicId,
+      customFields,
     });
-    const newOrder = (lastInColumn?.order ?? 0) + DEFAULT_SPACING;
-
-    const issue = await prisma.$transaction(async (tx) => {
-      const created = await tx.issue.create({
-        data: {
-          key,
-          summary,
-          description,
-          statusId,
-          priority: priority || 'MEDIUM',
-          type,
-          storyPoints: storyPoints ? parseFloat(storyPoints) : null,
-          dueDate: dueDate ? new Date(dueDate) : null,
-          projectId,
-          sprintId: sprintId || null,
-          assigneeId: assigneeId || null,
-          reporterId: userId!,
-          parentId: parentId || null,
-          epicId: epicId || null,
-          order: newOrder,
-        },
-        include: {
-          assignee: {
-            select: { id: true, firstName: true, lastName: true, avatarUrl: true },
-          },
-          status: true,
-        },
-      });
-
-      if (customFields && typeof customFields === 'object') {
-        const customFieldData = Object.entries(customFields).map(([name, val]) => ({
-          issueId: created.id,
-          fieldName: name,
-          fieldValue: typeof val === 'string' ? val : JSON.stringify(val),
-        }));
-        if (customFieldData.length > 0) {
-          await tx.issueCustomField.createMany({ data: customFieldData });
-        }
-      }
-
-      return created;
-    });
-
-    await prisma.activity.create({
-      data: {
-        issueId: issue.id,
-        userId: userId!,
-        action: 'CREATE',
-        details: JSON.stringify({ summary: issue.summary, type: issue.type }),
-      },
-    });
-
-    emitToProject(projectId, 'issue:created', issue);
-    dispatchAutomationEvent('issue_created', { projectId, userId, issueId: issue.id, issue });
-    
-    syncGoalProgressOnIssueChange(issue.id, projectId, issue.epicId, issue.parentId);
 
     return sendCreated(res, 'Issue created successfully', issue);
   } catch (error: any) {
     console.error('Create issue error:', error);
-    return sendError(res, 500, 'Failed to create issue');
+    return sendError(res, 500, error.message || 'Failed to create issue');
   }
 }
 
@@ -428,6 +373,26 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
     });
     if (!original) return sendError(res, 404, 'Issue not found');
 
+    const destCol = await prisma.boardColumn.findUnique({ where: { id: statusId } });
+    if (!destCol) return sendError(res, 400, 'Destination column not found');
+
+    // Validate active workflow transitions
+    const activeWorkflow = await prisma.workflow.findFirst({
+      where: { projectId: original.projectId, isDefault: true, deletedAt: null },
+      include: { transitions: { include: { fromState: true, toState: true } } },
+    });
+
+    if (activeWorkflow && activeWorkflow.transitions.length > 0) {
+      if (original.statusId !== statusId) {
+        const allowed = activeWorkflow.transitions.some(t => {
+          return t.fromStateId === original.status.workflowStateId && t.toStateId === destCol.workflowStateId;
+        });
+        if (!allowed) {
+          return sendError(res, 400, `Perpindahan status dari '${original.status.name}' ke '${destCol.name}' tidak diperbolehkan berdasarkan alur kerja (Workflow) aktif.`);
+        }
+      }
+    }
+
     // Compute the fractional order for the new position
     const newOrder = await computeNewOrder(statusId, beforeIssueId, afterIssueId);
 
@@ -484,7 +449,7 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
       }
     }
 
-    const destCol = await prisma.boardColumn.findUnique({ where: { id: statusId } });
+
 
     // Write activity only if status actually changed
     if (original.statusId !== statusId) {

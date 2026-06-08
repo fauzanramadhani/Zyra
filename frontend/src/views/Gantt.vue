@@ -1,7 +1,7 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto text-slate-800 dark:text-slate-200">
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
     <!-- Header Section -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="flex-shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div>
         <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
           Gantt Chart
@@ -84,13 +84,13 @@
     </transition>
 
     <!-- Loading Spinner -->
-    <div v-if="loading" class="flex justify-center py-20">
+    <div v-if="loading" class="flex-grow flex items-center justify-center py-20">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
     </div>
 
     <!-- Timeline View -->
-    <div v-else-if="tab === 'gantt'" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-      <div v-if="ganttData.length" class="overflow-x-auto">
+    <div v-else-if="tab === 'gantt'" class="flex-grow overflow-hidden bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col min-h-0">
+      <div v-if="ganttData.length" class="flex-grow overflow-x-auto">
         <div class="min-w-[950px]">
           <!-- Timeline Header -->
           <div class="flex items-center border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-850 px-4 py-3">
@@ -160,14 +160,14 @@
           </div>
         </div>
       </div>
-      <div v-else class="p-16 text-center text-slate-400 text-sm">
+      <div v-else class="flex-grow flex flex-col items-center justify-center p-16 text-center text-slate-400 text-sm">
         <CalendarIcon class="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
         No scheduled issues found. Specify start and end dates inside cards to track them.
       </div>
     </div>
 
     <!-- Dependency Graph View -->
-    <div v-else-if="tab === 'deps'" class="space-y-6">
+    <div v-else-if="tab === 'deps'" class="flex-grow overflow-y-auto space-y-6 min-h-0 pr-1">
       <!-- Critical Path Section -->
       <div v-if="depGraph.criticalPath?.length" class="p-5 bg-rose-50/50 dark:bg-rose-950/15 rounded-2xl border border-rose-100 dark:border-rose-900/30 shadow-sm">
         <h4 class="text-xs font-extrabold text-rose-600 dark:text-rose-450 mb-3 uppercase tracking-wider flex items-center gap-1.5">
@@ -255,7 +255,7 @@
         </div>
       </div>
 
-      <div v-else class="text-center py-16 text-slate-400 text-sm">
+      <div v-else class="flex-grow flex flex-col items-center justify-center py-16 text-slate-400 text-sm">
         <AlertCircleIcon class="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
         No nodes found in the current dependency tree. Add links between cards to establish connections.
       </div>

@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
 import { success, error } from '../utils/response';
+import { IssueService } from '../services/issue.service';
+import { scheduleRecurringJob, removeRecurringJob } from '../services/recurring.service';
 
 export const listRecurringIssues = async (req: Request, res: Response) => {
   try {
@@ -35,6 +37,10 @@ export const createRecurringIssue = async (req: Request, res: Response) => {
         createdBy: userId,
       },
     });
+
+    // CRUD Integration: Schedule the delayed execution job
+    await scheduleRecurringJob(item.id);
+
     return success(res, item, 201);
   } catch (e: any) {
     return error(res, e.message);
@@ -55,6 +61,15 @@ export const updateRecurringIssue = async (req: Request, res: Response) => {
     if (enabled !== undefined) data.enabled = enabled;
 
     const item = await prisma.recurringIssue.update({ where: { id: recurringId }, data });
+
+    // CRUD Integration: Reschedule if timing properties or active flags changed
+    if (schedule !== undefined || timezone !== undefined || enabled !== undefined) {
+      await removeRecurringJob(recurringId);
+      if (item.enabled && !item.deletedAt) {
+        await scheduleRecurringJob(recurringId);
+      }
+    }
+
     return success(res, item);
   } catch (e: any) {
     return error(res, e.message);
@@ -65,11 +80,16 @@ export const deleteRecurringIssue = async (req: Request, res: Response) => {
   try {
     const { recurringId } = req.params;
     await prisma.recurringIssue.update({ where: { id: recurringId }, data: { deletedAt: new Date() } });
+
+    // CRUD Integration: Remove the scheduled delayed job
+    await removeRecurringJob(recurringId);
+
     return success(res, { message: 'Recurring issue deleted' });
   } catch (e: any) {
     return error(res, e.message);
   }
 };
+
 
 export const triggerRecurringIssue = async (req: Request, res: Response) => {
   try {
@@ -89,24 +109,16 @@ export const triggerRecurringIssue = async (req: Request, res: Response) => {
     const todoCol = project.boards[0]?.columns.find(c => c.position === 0);
     if (!todoCol) return error(res, 'No board column found', 400);
 
-    // Generate issue key
-    const lastIssue = await prisma.issue.findFirst({ where: { projectId: project.id }, orderBy: { createdAt: 'desc' } });
-    const nextNum = lastIssue ? parseInt(lastIssue.key.split('-')[1]) + 1 : 1;
-    const key = `${project.key}-${nextNum}`;
-
-    const issue = await prisma.issue.create({
-      data: {
-        key,
-        summary: template.summary,
-        description: template.description || null,
-        type: template.type || 'TASK',
-        priority: template.priority || 'MEDIUM',
-        storyPoints: template.storyPoints || null,
-        statusId: todoCol.id,
-        projectId: project.id,
-        reporterId: recurring.createdBy,
-        assigneeId: template.assigneeId || null,
-      },
+    const issue = await IssueService.createIssue({
+      projectId: project.id,
+      summary: template.summary,
+      type: template.type || 'TASK',
+      statusId: todoCol.id,
+      description: template.description || null,
+      priority: template.priority || 'MEDIUM',
+      storyPoints: template.storyPoints || null,
+      reporterId: recurring.createdBy,
+      assigneeId: template.assigneeId || null,
     });
 
     await prisma.recurringIssue.update({
@@ -120,7 +132,7 @@ export const triggerRecurringIssue = async (req: Request, res: Response) => {
   }
 };
 
-function calculateNextRun(schedule: string, _timezone?: string): Date {
+export function calculateNextRun(schedule: string, _timezone?: string): Date {
   const now = new Date();
   switch (schedule) {
     case 'DAILY':

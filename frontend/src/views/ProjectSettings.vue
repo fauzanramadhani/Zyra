@@ -1,14 +1,16 @@
 <template>
-  <div class="p-4 md:p-8 bg-slate-50 dark:bg-zyra-gray-darkBg min-h-screen space-y-6 md:space-y-8 font-sans">
-    <!-- Header -->
-    <div class="flex items-center justify-between pb-6 border-b border-slate-200 dark:border-zyra-gray-darkBorder">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Project Settings</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure project identifiers, visibility settings, members, and delete actions.</p>
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200 font-sans">
+    <div class="flex-shrink-0 pb-6 border-b border-slate-200 dark:border-zyra-gray-darkBorder mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Project Settings</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure project identifiers, visibility settings, members, and delete actions.</p>
+        </div>
       </div>
     </div>
 
     <!-- Forms Grid -->
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
     <div class="grid grid-cols-1 gap-8">
       <!-- General Settings -->
       <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder shadow-sm overflow-hidden">
@@ -126,6 +128,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
 
     <!-- Confirm Dialog -->

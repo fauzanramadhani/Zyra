@@ -1,21 +1,25 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
-          Workflows
-          <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
-            <HelpCircleIcon class="w-5 h-5" />
-          </button>
-        </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Custom issue workflows with states and transitions</p>
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0 mb-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+            Workflows
+            <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
+              <HelpCircleIcon class="w-5 h-5" />
+            </button>
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Custom issue workflows with states and transitions</p>
+        </div>
+        <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
+          <PlusIcon class="w-4 h-4" />
+          New Workflow
+        </button>
       </div>
-      <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
-        <PlusIcon class="w-4 h-4" />
-        New Workflow
-      </button>
     </div>
+
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
 
     <!-- Glassmorphic Help Card -->
     <div v-if="showHelp" class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm relative transition duration-300">
@@ -91,6 +95,8 @@
       <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition">Create Workflow</button>
     </div>
 
+    </div>
+
     <!-- Create/Edit Modal -->
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
@@ -99,7 +105,12 @@
           <h2 class="text-lg font-bold text-slate-800 dark:text-white mb-4">{{ editingId ? 'Edit' : 'New' }} Workflow</h2>
           
           <input v-model="form.name" placeholder="Workflow name" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm mb-3" />
-          <textarea v-model="form.description" placeholder="Description" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm mb-4"></textarea>
+          <textarea v-model="form.description" placeholder="Description" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm mb-3"></textarea>
+
+          <div class="flex items-center gap-2 mb-4">
+            <input type="checkbox" id="isDefault" v-model="form.isDefault" class="rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+            <label for="isDefault" class="text-sm font-semibold text-slate-700 dark:text-slate-350">Set as Active (Default) Workflow</label>
+          </div>
 
           <!-- States Editor -->
           <div class="mb-4">
@@ -146,7 +157,7 @@ export default defineComponent({
     const workflows = ref<any[]>([]);
     const showModal = ref(false);
     const editingId = ref('');
-    const form = ref<any>({ name: '', description: '', states: [{ name: 'To Do', category: 'TODO' }, { name: 'In Progress', category: 'IN_PROGRESS' }, { name: 'Done', category: 'DONE' }] });
+    const form = ref<any>({ name: '', description: '', isDefault: false, states: [{ name: 'To Do', category: 'TODO' }, { name: 'In Progress', category: 'IN_PROGRESS' }, { name: 'Done', category: 'DONE' }] });
 
     const fetchWorkflows = async () => {
       loading.value = true;
@@ -158,20 +169,20 @@ export default defineComponent({
 
     const openCreateModal = () => {
       editingId.value = '';
-      form.value = { name: '', description: '', states: [{ name: 'To Do', category: 'TODO' }, { name: 'In Progress', category: 'IN_PROGRESS' }, { name: 'Done', category: 'DONE' }] };
+      form.value = { name: '', description: '', isDefault: false, states: [{ name: 'To Do', category: 'TODO' }, { name: 'In Progress', category: 'IN_PROGRESS' }, { name: 'Done', category: 'DONE' }] };
       showModal.value = true;
     };
 
     const editWorkflow = (wf: any) => {
       editingId.value = wf.id;
-      form.value = { name: wf.name, description: wf.description || '', states: wf.states?.map((s: any) => ({ name: s.name, category: s.category })) || [] };
+      form.value = { name: wf.name, description: wf.description || '', isDefault: wf.isDefault || false, states: wf.states?.map((s: any) => ({ id: s.id, name: s.name, category: s.category })) || [] };
       showModal.value = true;
     };
 
     const saveWorkflow = async () => {
       try {
         if (editingId.value) {
-          await api.patch(`/workflows/${editingId.value}`, { name: form.value.name, description: form.value.description });
+          await api.patch(`/workflows/${editingId.value}`, { name: form.value.name, description: form.value.description, isDefault: form.value.isDefault, states: form.value.states });
         } else {
           await api.post(`/projects/${projectId.value}/workflows`, { ...form.value });
         }

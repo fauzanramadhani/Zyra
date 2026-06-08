@@ -1,15 +1,19 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-800 dark:text-white">SLA Policies</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Track response and resolution time targets</p>
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800 dark:text-white">SLA Policies</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Track response and resolution time targets</p>
+        </div>
+        <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
+          <PlusIcon class="w-4 h-4" />
+          New SLA Policy
+        </button>
       </div>
-      <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
-        <PlusIcon class="w-4 h-4" />
-        New SLA Policy
-      </button>
     </div>
+
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
 
     <!-- Compliance Report -->
     <div v-if="report" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -58,6 +62,8 @@
       <h3 class="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2">No SLA policies</h3>
       <p class="text-sm text-slate-400 mb-4">Define response and resolution time targets for your issues</p>
       <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition">Create Policy</button>
+    </div>
+
     </div>
 
     <!-- Create Modal -->

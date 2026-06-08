@@ -238,6 +238,8 @@ model Project {
   approvalRules   ApprovalRule[]
   publicForms     PublicForm[]
   emailInboxes    EmailInbox[]
+  wikiSpaces      WikiSpace[]
+  timesheets      Timesheet[]
 
   @@unique([workspaceId, key])
 }
@@ -289,17 +291,19 @@ model Board {
 }
 
 model BoardColumn {
-  id         String    @id @default(uuid())
-  name       String
-  position   Int // Ordinal position
-  boardId    String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
-  archivedAt DateTime?
+  id              String         @id @default(uuid())
+  name            String
+  position        Int // Ordinal position
+  boardId         String
+  workflowStateId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+  archivedAt      DateTime?
 
-  board  Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  issues Issue[]
+  board         Board          @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  workflowState WorkflowState? @relation(fields: [workflowStateId], references: [id])
+  issues        Issue[]
 }
 
 // Project Labels (Custom Issue Tags)
@@ -783,13 +787,14 @@ model GitPullRequest {
 
 // --- Custom Workflows ---
 model Workflow {
-  id        String    @id @default(uuid())
-  name      String
-  projectId String
-  isDefault Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  projectId   String
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   project     Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
   states      WorkflowState[]
@@ -806,9 +811,10 @@ model WorkflowState {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  workflow Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  outgoing WorkflowTransition[] @relation("TransitionFrom")
-  incoming WorkflowTransition[] @relation("TransitionTo")
+  workflow     Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  outgoing     WorkflowTransition[] @relation("TransitionFrom")
+  incoming     WorkflowTransition[] @relation("TransitionTo")
+  boardColumns BoardColumn[]
 }
 
 model WorkflowTransition {
@@ -862,20 +868,34 @@ model DashboardWidget {
 
 // --- Recurring Issues ---
 model RecurringIssue {
-  id           String    @id @default(uuid())
+  id           String               @id @default(uuid())
   projectId    String
-  templateData String // JSON: issue template (summary, description, type, priority, assigneeId, labels)
-  schedule     String // Cron expression or "DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY"
-  timezone     String    @default("UTC")
-  enabled      Boolean   @default(true)
+  templateData String               // JSON: issue template (summary, description, type, priority, assigneeId, labels)
+  schedule     String               // Cron expression or "DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY"
+  timezone     String               @default("UTC")
+  enabled      Boolean              @default(true)
   nextRunAt    DateTime?
   lastRunAt    DateTime?
   createdBy    String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  version      Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
   deletedAt    DateTime?
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project    Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  executions RecurringExecution[]
+}
+
+model RecurringExecution {
+  id           String         @id @default(uuid())
+  recurringId  String
+  scheduledFor DateTime
+  status       String         @default("SUCCESS")
+  createdAt    DateTime       @default(now())
+
+  recurring    RecurringIssue @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+
+  @@unique([recurringId, scheduledFor])
 }
 
 // --- SLA Tracking ---
@@ -1024,12 +1044,13 @@ model WikiSpace {
   id          String    @id @default(uuid())
   name        String
   description String?
-  projectId   String?
+  projectId   String
   workspaceId String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   pages WikiPage[]
 }
 
@@ -1146,6 +1167,7 @@ model ChatIntegration {
 model Timesheet {
   id           String    @id @default(uuid())
   userId       String
+  projectId    String
   weekStart    DateTime // Monday of the week
   status       String    @default("DRAFT") // "DRAFT", "SUBMITTED", "APPROVED", "REJECTED"
   totalMinutes Int       @default(0)
@@ -1156,9 +1178,10 @@ model Timesheet {
   updatedAt    DateTime  @updatedAt
 
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   entries TimesheetEntry[]
 
-  @@unique([userId, weekStart])
+  @@unique([userId, projectId, weekStart])
 }
 
 model TimesheetEntry {

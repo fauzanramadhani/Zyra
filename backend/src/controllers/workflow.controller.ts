@@ -19,10 +19,78 @@ export const listWorkflows = async (req: Request, res: Response) => {
 export const createWorkflow = async (req: Request, res: Response) => {
   try {
     const { projectId } = req.params;
-    const { name, isDefault } = req.body;
-    const workflow = await prisma.workflow.create({
-      data: { name, projectId, isDefault: isDefault || false },
+    const { name, description, isDefault, states } = req.body;
+
+    const workflow = await prisma.$transaction(async (tx) => {
+      const wf = await tx.workflow.create({
+        data: {
+          name,
+          description,
+          projectId,
+          isDefault: isDefault || false,
+          states: states && Array.isArray(states) ? {
+            create: states.map((s: any, idx: number) => ({
+              name: s.name,
+              category: s.category || 'TODO',
+              color: s.color || '#6B7280',
+              position: s.position ?? idx,
+            }))
+          } : undefined,
+        },
+        include: { states: true },
+      });
+
+      if (isDefault) {
+        await tx.workflow.updateMany({
+          where: { projectId, id: { not: wf.id } },
+          data: { isDefault: false },
+        });
+
+        const board = await tx.board.findFirst({ where: { projectId } });
+        if (board && states && Array.isArray(states)) {
+          const currentColumns = await tx.boardColumn.findMany({ where: { boardId: board.id } });
+          const stateNames = states.map(s => s.name.toLowerCase());
+          const firstColumn = currentColumns.find(c => c.name.toLowerCase() === states[0]?.name.toLowerCase()) || currentColumns[0];
+
+          for (const col of currentColumns) {
+            if (!stateNames.includes(col.name.toLowerCase())) {
+              if (firstColumn && firstColumn.id !== col.id) {
+                await tx.issue.updateMany({ where: { statusId: col.id }, data: { statusId: firstColumn.id } });
+              }
+              await tx.boardColumn.delete({ where: { id: col.id } });
+            }
+          }
+
+          for (let i = 0; i < states.length; i++) {
+            const state = states[i];
+            const normalizedName = state.name.charAt(0).toUpperCase() + state.name.slice(1);
+            let col = currentColumns.find(c => c.name.toLowerCase() === state.name.toLowerCase());
+            const dbState = wf.states.find(s => s.name.toLowerCase() === state.name.toLowerCase());
+            if (!col) {
+              await tx.boardColumn.create({
+                data: { 
+                  name: normalizedName, 
+                  position: i, 
+                  boardId: board.id,
+                  workflowStateId: dbState?.id || null
+                }
+              });
+            } else {
+              await tx.boardColumn.update({ 
+                where: { id: col.id }, 
+                data: { 
+                  position: i,
+                  workflowStateId: dbState?.id || null
+                } 
+              });
+            }
+          }
+        }
+      }
+
+      return wf;
     });
+
     return success(res, workflow, 201);
   } catch (e: any) {
     return error(res, e.message);
@@ -49,11 +117,107 @@ export const getWorkflow = async (req: Request, res: Response) => {
 export const updateWorkflow = async (req: Request, res: Response) => {
   try {
     const { workflowId } = req.params;
-    const { name, isDefault } = req.body;
-    const workflow = await prisma.workflow.update({
-      where: { id: workflowId },
-      data: { name, isDefault },
+    const { name, description, isDefault, states } = req.body;
+
+    const workflow = await prisma.$transaction(async (tx) => {
+      const originalWf = await tx.workflow.findUnique({ where: { id: workflowId } });
+      if (!originalWf) throw new Error('Workflow not found');
+
+      await tx.workflow.update({
+        where: { id: workflowId },
+        data: { name, description, isDefault },
+      });
+
+      if (isDefault) {
+        await tx.workflow.updateMany({
+          where: { projectId: originalWf.projectId, id: { not: workflowId } },
+          data: { isDefault: false },
+        });
+      }
+
+      if (states && Array.isArray(states)) {
+        const incomingIds = states.map((s: any) => s.id).filter(Boolean);
+
+        await tx.workflowState.deleteMany({
+          where: {
+            workflowId,
+            id: { notIn: incomingIds }
+          }
+        });
+
+        for (let idx = 0; idx < states.length; idx++) {
+          const s = states[idx];
+          if (s.id) {
+            await tx.workflowState.update({
+              where: { id: s.id, workflowId },
+              data: {
+                name: s.name,
+                category: s.category || 'TODO',
+                position: s.position ?? idx,
+              }
+            });
+          } else {
+            await tx.workflowState.create({
+              data: {
+                workflowId,
+                name: s.name,
+                category: s.category || 'TODO',
+                position: s.position ?? idx,
+              }
+            });
+          }
+        }
+      }
+
+      // Sync with Board Columns if default
+      if (isDefault) {
+        const board = await tx.board.findFirst({ where: { projectId: originalWf.projectId } });
+        if (board) {
+          const currentColumns = await tx.boardColumn.findMany({ where: { boardId: board.id } });
+          const dbStates = await tx.workflowState.findMany({ where: { workflowId }, orderBy: { position: 'asc' } });
+          const stateNames = dbStates.map(s => s.name.toLowerCase());
+          const firstColumn = currentColumns.find(c => c.name.toLowerCase() === dbStates[0]?.name.toLowerCase()) || currentColumns[0];
+
+          for (const col of currentColumns) {
+            if (!stateNames.includes(col.name.toLowerCase())) {
+              if (firstColumn && firstColumn.id !== col.id) {
+                await tx.issue.updateMany({ where: { statusId: col.id }, data: { statusId: firstColumn.id } });
+              }
+              await tx.boardColumn.delete({ where: { id: col.id } });
+            }
+          }
+
+          for (let i = 0; i < dbStates.length; i++) {
+            const state = dbStates[i];
+            let col = currentColumns.find(c => c.name.toLowerCase() === state.name.toLowerCase());
+            if (!col) {
+              await tx.boardColumn.create({
+                data: { 
+                  name: state.name, 
+                  position: i, 
+                  boardId: board.id,
+                  workflowStateId: state.id
+                }
+              });
+            } else {
+              await tx.boardColumn.update({ 
+                where: { id: col.id }, 
+                data: { 
+                  position: i,
+                  workflowStateId: state.id
+                } 
+              });
+            }
+          }
+        }
+      }
+
+      return tx.workflow.findUnique({
+        where: { id: workflowId },
+        include: { states: { orderBy: { position: 'asc' } } }
+      });
     });
+
     return success(res, workflow);
   } catch (e: any) {
     return error(res, e.message);

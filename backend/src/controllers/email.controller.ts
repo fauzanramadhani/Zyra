@@ -73,6 +73,8 @@ export const deleteInbox = async (req: Request, res: Response) => {
   }
 };
 
+import { IssueService } from '../services/issue.service';
+
 // --- Process Incoming Email (webhook from mail service) ---
 export const processIncomingEmail = async (req: Request, res: Response) => {
   try {
@@ -96,22 +98,15 @@ export const processIncomingEmail = async (req: Request, res: Response) => {
     const todoCol = project.boards[0]?.columns[0];
     if (!todoCol) return error(res, 'No board column', 400);
 
-    const lastIssue = await prisma.issue.findFirst({ where: { projectId: project.id }, orderBy: { createdAt: 'desc' } });
-    const nextNum = lastIssue ? parseInt(lastIssue.key.split('-')[1]) + 1 : 1;
-    const key = `${project.key}-${nextNum}`;
-
-    const issue = await prisma.issue.create({
-      data: {
-        key,
-        summary: subject || 'Email Issue',
-        description: `<p><strong>From:</strong> ${fromName || fromEmail}</p><hr/>${body}`,
-        type: inbox.defaultType,
-        priority: inbox.defaultPriority,
-        statusId: todoCol.id,
-        projectId: project.id,
-        reporterId: project.leadId,
-        assigneeId: inbox.assigneeId,
-      },
+    const issue = await IssueService.createIssue({
+      projectId: project.id,
+      summary: subject || 'Email Issue',
+      type: inbox.defaultType,
+      statusId: todoCol.id,
+      description: `<p><strong>From:</strong> ${fromName || fromEmail}</p><hr/>${body}`,
+      priority: inbox.defaultPriority,
+      reporterId: project.leadId,
+      assigneeId: inbox.assigneeId,
     });
 
     await prisma.incomingEmail.update({

@@ -13,6 +13,8 @@ import router from './routes';
 import { initSocketIO } from './services/websocket.service';
 import { startImportWorker } from './workers/import.worker';
 import { startAutomationWorker } from './workers/automation.worker';
+import { startRecurringWorker } from './workers/recurring.worker';
+import { recoverRecurringSchedules } from './services/recurring.service';
 import { errorHandler } from './middleware/error.middleware';
 
 const app = express();
@@ -68,6 +70,10 @@ console.log('BullMQ CSV Importer background worker initialized');
 startAutomationWorker();
 console.log('BullMQ Automation background worker initialized');
 
+// Start Recurring Worker
+const recurringWorker = startRecurringWorker();
+console.log('BullMQ Recurring background worker initialized');
+
 // Initialize issue ordering: assign sequential orders to existing issues that are unordered
 async function initializeIssueOrdering() {
   try {
@@ -114,12 +120,14 @@ const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, async () => {
   console.log(`Backend server successfully running on port ${PORT}`);
   await initializeIssueOrdering();
+  await recoverRecurringSchedules();
 });
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received. Shutting down gracefully...');
   await importWorker.close();
+  await recurringWorker.close();
   httpServer.close(() => {
     console.log('HTTP Server closed.');
     process.exit(0);

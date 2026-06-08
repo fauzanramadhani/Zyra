@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Approvals</h1>
@@ -11,6 +11,7 @@
       </button>
     </div>
 
+    <div class="flex-grow overflow-y-auto min-h-0 pr-1">
     <!-- Tabs -->
     <div class="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
       <button @click="tab = 'rules'" :class="tab === 'rules' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''" class="px-4 py-2 rounded-md text-sm font-medium transition">Rules</button>
@@ -72,6 +73,8 @@
         <h3 class="text-lg font-semibold text-slate-600 dark:text-slate-300">All caught up!</h3>
         <p class="text-sm text-slate-400">No pending approvals</p>
       </div>
+    </div>
+
     </div>
 
     <!-- Create Rule Modal -->

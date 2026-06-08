@@ -1,65 +1,67 @@
 <template>
-  <div class="p-6 max-w-7xl w-full mx-auto">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
-          Dashboards
-          <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
+  <div class="flex-grow p-3 md:p-6 flex flex-col h-screen overflow-hidden text-slate-800 dark:text-slate-200">
+    <div class="flex-shrink-0">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-extrabold text-slate-800 dark:text-white flex items-center gap-2">
+            Dashboards
+            <button @click="showHelp = !showHelp" class="p-1 rounded-lg text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition" title="Toggle Help Guide">
+              <HelpCircleIcon class="w-5 h-5" />
+            </button>
+          </h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Custom widget-based dashboards</p>
+        </div>
+        <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
+          <PlusIcon class="w-4 h-4" />
+          New Dashboard
+        </button>
+      </div>
+
+      <!-- Help Card -->
+      <div v-if="showHelp" class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm relative transition duration-300">
+        <button @click="showHelp = false" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+          <XIcon class="w-4 h-4" />
+        </button>
+        <div class="flex items-start gap-3.5">
+          <div class="w-9 h-9 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-500 flex-shrink-0">
             <HelpCircleIcon class="w-5 h-5" />
-          </button>
-        </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Custom widget-based dashboards</p>
-      </div>
-      <button @click="openCreateModal" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition flex items-center gap-2">
-        <PlusIcon class="w-4 h-4" />
-        New Dashboard
-      </button>
-    </div>
-
-    <!-- Help Card -->
-    <div v-if="showHelp" class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-orange-50/80 via-amber-50/50 to-transparent dark:from-orange-950/20 dark:via-slate-800/40 dark:to-transparent border border-orange-200/50 dark:border-orange-500/10 shadow-sm backdrop-blur-sm relative transition duration-300">
-      <button @click="showHelp = false" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
-        <XIcon class="w-4 h-4" />
-      </button>
-      <div class="flex items-start gap-3.5">
-        <div class="w-9 h-9 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-500 flex-shrink-0">
-          <HelpCircleIcon class="w-5 h-5" />
-        </div>
-        <div class="flex-1 min-w-0 pr-4">
-          <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Workspace Dashboards</h3>
-          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-            Dashboards let you compile cross-project statistics, live issue metrics, activity streams, and status summaries.
-          </p>
-          <ul class="text-xs text-slate-500 dark:text-slate-400 mt-2 space-y-1.5 pl-4 list-disc">
-            <li><strong>Widget Types</strong>: Stats, Pie/Bar/Line Charts, Activity Stream, Calendar</li>
-            <li><strong>Chart Configuration</strong>: Group by Status, Priority, or Type</li>
-          </ul>
+          </div>
+          <div class="flex-1 min-w-0 pr-4">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Workspace Dashboards</h3>
+            <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+              Dashboards let you compile cross-project statistics, live issue metrics, activity streams, and status summaries.
+            </p>
+            <ul class="text-xs text-slate-500 dark:text-slate-400 mt-2 space-y-1.5 pl-4 list-disc">
+              <li><strong>Widget Types</strong>: Stats, Pie/Bar/Line Charts, Activity Stream, Calendar</li>
+              <li><strong>Chart Configuration</strong>: Group by Status, Priority, or Type</li>
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Dashboard Selector -->
-    <div v-if="dashboards.length" class="flex items-center gap-3 mb-6">
-      <select v-model="selectedDashboardId" @change="loadDashboard" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-slate-200 text-sm font-medium">
-        <option v-for="d in dashboards" :key="d.id" :value="d.id">{{ d.name }}</option>
-      </select>
-      <button v-if="selectedDashboard" @click="openAddWidget" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-1 text-slate-700 dark:text-slate-200">
-        <PlusIcon class="w-3.5 h-3.5" />
-        Add Widget
-      </button>
-      <button v-if="selectedDashboard" @click="deleteDashboard" class="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition">
-        <Trash2Icon class="w-4 h-4" />
-      </button>
+      <!-- Dashboard Selector -->
+      <div v-if="dashboards.length" class="flex items-center gap-3 mb-6">
+        <select v-model="selectedDashboardId" @change="loadDashboard" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-slate-200 text-sm font-medium">
+          <option v-for="d in dashboards" :key="d.id" :value="d.id">{{ d.name }}</option>
+        </select>
+        <button v-if="selectedDashboard" @click="openAddWidget" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-1 text-slate-700 dark:text-slate-200">
+          <PlusIcon class="w-3.5 h-3.5" />
+          Add Widget
+        </button>
+        <button v-if="selectedDashboard" @click="deleteDashboard" class="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition">
+          <Trash2Icon class="w-4 h-4" />
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-20">
+    <div v-if="loading" class="flex-grow flex items-center justify-center py-20">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
     </div>
 
     <!-- Widgets Grid -->
-    <div v-else-if="selectedDashboard && selectedDashboard.widgets?.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else-if="selectedDashboard && selectedDashboard.widgets?.length" class="flex-grow overflow-y-auto min-h-0 pr-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div v-for="widget in selectedDashboard.widgets" :key="widget.id"
         class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm relative"
         :class="{ 'md:col-span-2': widget.width === 2, 'lg:col-span-3': widget.width === 3 }">
@@ -157,7 +159,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else class="text-center py-20">
+    <div v-else class="flex-grow flex flex-col items-center justify-center py-20">
       <LayoutDashboardIcon class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
       <h3 class="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2">No dashboards yet</h3>
       <p class="text-sm text-slate-400 mb-4">Create a custom dashboard with widgets to track your project</p>

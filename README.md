@@ -233,20 +233,30 @@ An open-source alternative to Jira for project management and issue tracking. Bu
 
 ## Services & Ports
 
-| Service | Port |
-|---------|------|
-| Frontend (Vite dev) | 5173 |
-| Backend (Express) | 5000 |
-| PostgreSQL | 5432 |
-| Redis | 6379 |
-| Adminer (DB UI) | 8080 |
-| RedisInsight | 8001 |
+### Development Environment
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend (Vite dev) | 5173 | Hot-reloaded Vue 3 app |
+| Backend (Express) | 5000 | Dev server with nodemon |
+| PostgreSQL | 5432 | Database |
+| Redis | 6379 | Message Broker (BullMQ) |
+| Adminer (DB UI) | 8080 | PostgreSQL Web Client |
+| RedisInsight | 8001 | Redis Web Client |
+
+### Production Environment
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend (Vite preview) | 80 | Compiled static files served via Node.js |
+| Backend (Express) | 5000 | Compiled app in production mode |
+| PostgreSQL | 5432 | Database |
+| Redis | 6379 | Message Broker (BullMQ) |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 - Docker and Docker Compose
-- WSL2 with Ubuntu (on Windows)
 - (Optional) Node.js 20+ for local development without Docker
 
 ### Setup
@@ -262,45 +272,30 @@ An open-source alternative to Jira for project management and issue tracking. Bu
    cp .env.example .env
    ```
 
-3. Build and start all services:
-   ```bash
-   make build
-   make up
-   ```
+### 1. Running in Development (Local / Hot Reload)
+To build and start the development environment:
+```bash
+docker compose up --build
+```
+* **Auto-Reload**: Direct folder mapping (`volumes` bind mounts) is enabled. Any local edits immediately reload the frontend/backend.
+* **Auto-Schema & Seed**: Database migrations (`prisma db push`) and data seeding run automatically inside the backend container at startup.
+* **Access App**: http://localhost:5173
+* **Access Database (Adminer)**: http://localhost:8080
+* **Stop Services Safely**: `docker compose down`
 
-4. Push the database schema:
-   ```bash
-   make prisma-push
-   ```
+### 2. Running in Production
+To build and start the optimized production environment:
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+* **Optimized Build**: Compiles TypeScript backend and Vite frontend into optimized build bundles (no source code directories are mounted).
+* **Vite Preview on Node**: Serves the frontend statically on port `80` using a Node.js-based preview engine (no Nginx dependency).
+* **Security Hardening**: Development client tools (Adminer, RedisInsight) are disabled/hidden.
+* **Auto-Schema & Idempotent Seed**: Database pushes schema updates automatically. The seed script checks for existing users first, keeping your production data safe.
+* **Access App**: http://localhost
+* **Stop Services Safely**: `docker compose -f docker-compose.prod.yml down` (never use `-v` in production to prevent volume loss).
 
-5. (Optional) Seed the database:
-   ```bash
-   make seed
-   ```
-
-6. Access the application at `http://localhost:5173`
-
-### Database Administration
-- **Adminer** (PostgreSQL GUI): http://localhost:8080
-  - Server: `postgres`, User: `postgres`, Password: see `.env`, Database: `zyra`
-- **RedisInsight** (Redis GUI): http://localhost:8001
-  - Host: `redis`, Port: `6379`
-
-## Available Commands
-
-| Command | Description |
-|---------|-------------|
-| `make build` | Build all Docker containers |
-| `make up` | Start all services (detached) |
-| `make down` | Stop all services |
-| `make restart` | Restart all services |
-| `make logs-backend` | Tail backend logs |
-| `make logs-frontend` | Tail frontend logs |
-| `make prisma-push` | Push Prisma schema to database |
-| `make prisma-migrate` | Run Prisma migrations |
-| `make seed` | Seed the database |
-| `make dev-frontend` | Run frontend locally (outside Docker) |
-| `make clean` | Stop services and delete volumes |
+---
 
 ## Project Structure
 
@@ -309,23 +304,23 @@ An open-source alternative to Jira for project management and issue tracking. Bu
 │   ├── prisma/           # Schema and seed
 │   ├── src/
 │   │   ├── controllers/  # Route handlers
-│   │   ├── middleware/    # Auth, error handling, uploads
-│   │   ├── routes/        # API route definitions
-│   │   ├── services/      # WebSocket, job queues
-│   │   ├── workers/       # Background job processors
-│   │   ├── utils/         # Response helpers, CSV mapper
-│   │   └── types/         # TypeScript type definitions
-│   └── uploads/           # File upload storage
+│   │   ├── middleware/   # Auth, error handling, uploads
+│   │   ├── routes/       # API route definitions
+│   │   ├── services/     # WebSocket, job queues
+│   │   ├── workers/      # Background job processors
+│   │   ├── utils/        # Response helpers, CSV mapper
+│   │   └── types/        # TypeScript type definitions
+│   └── uploads/          # File upload storage
 ├── frontend/
 │   ├── src/
-│   │   ├── components/    # Reusable UI components
-│   │   ├── views/         # Page-level components
-│   │   ├── store/         # Pinia state management
-│   │   ├── services/      # API client, socket client
-│   │   └── router/        # Vue Router configuration
+│   │   ├── components/   # Reusable UI components
+│   │   ├── views/        # Page-level components
+│   │   ├── store/        # Pinia state management
+│   │   ├── services/     # API client, socket client
+│   │   └── router/       # Vue Router configuration
 │   └── public/
-├── docker-compose.yml
-├── Makefile
+├── docker-compose.yml     # Development Compose File
+├── docker-compose.prod.yml# Production Compose File
 └── .env
 ```
 
