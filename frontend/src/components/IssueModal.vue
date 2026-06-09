@@ -38,14 +38,38 @@
           <!-- Description -->
           <div>
             <h4 class="text-sm font-semibold text-gray-600 dark:text-slate-400 mb-2">Description</h4>
-            <TipTapEditor v-model="descriptionInput" />
-            <div class="flex justify-end gap-2 mt-2">
-              <button
-                @click="updateField('description', descriptionInput)"
-                class="px-3 py-1.5 bg-zyra-primary hover:bg-zyra-primary-hover text-white text-xs font-semibold rounded shadow transition"
-              >
-                Save Description
+
+            <div v-if="isSubmissionJson" class="space-y-4 mb-4">
+              <!-- Submission Details Card -->
+              <div class="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Public Form Submission Data
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  <div v-for="(val, key) in parsedSubmissionJson" :key="key" class="border-b border-slate-100 dark:border-slate-800 pb-2 last:border-0">
+                    <span class="font-bold text-slate-450 dark:text-slate-500 block text-[10px] uppercase tracking-wider mb-1">{{ key }}</span>
+                    <span class="text-slate-800 dark:text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">{{ val }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Edit Description toggle link -->
+              <button @click="showRawDescriptionEditor = !showRawDescriptionEditor" class="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 font-semibold hover:underline">
+                {{ showRawDescriptionEditor ? 'Hide Description Editor' : 'Edit Description Text' }}
               </button>
+            </div>
+
+            <!-- Standard Description Editor or Raw Description Editor toggle -->
+            <div v-if="!isSubmissionJson || showRawDescriptionEditor">
+              <TipTapEditor v-model="descriptionInput" />
+              <div class="flex justify-end gap-2 mt-2">
+                <button
+                  @click="updateField('description', descriptionInput)"
+                  class="px-3 py-1.5 bg-zyra-primary hover:bg-zyra-primary-hover text-white text-xs font-semibold rounded shadow transition"
+                >
+                  Save Description
+                </button>
+              </div>
             </div>
           </div>
 
@@ -474,7 +498,8 @@ import {
   Paperclip as PaperclipIcon,
   Download as DownloadIcon,
   Trash as TrashIcon,
-  UploadCloud as UploadCloudIcon
+  UploadCloud as UploadCloudIcon,
+  ClipboardList as ClipboardListIcon
 } from 'lucide-vue-next';
 
 export default defineComponent({
@@ -488,6 +513,7 @@ export default defineComponent({
     UploadCloudIcon,
     AppConfirmDialog,
     UserAvatar,
+    ClipboardListIcon,
   },
   props: {
     isOpen: {
@@ -532,6 +558,26 @@ export default defineComponent({
     // Comments / attachments state
     const commentInput = ref('');
     const isDragging = ref(false);
+    const showRawDescriptionEditor = ref(false);
+
+    const isSubmissionJson = computed(() => {
+      if (!issue.value?.description) return false;
+      try {
+        const parsed = JSON.parse(issue.value.description);
+        return parsed && typeof parsed === 'object';
+      } catch {
+        return false;
+      }
+    });
+
+    const parsedSubmissionJson = computed(() => {
+      if (!issue.value?.description) return {};
+      try {
+        return JSON.parse(issue.value.description);
+      } catch {
+        return {};
+      }
+    });
 
     // Subtasks
     const showAddSubtask = ref(false);
@@ -947,6 +993,9 @@ export default defineComponent({
       dueDateInput,
       commentInput,
       isDragging,
+      showRawDescriptionEditor,
+      isSubmissionJson,
+      parsedSubmissionJson,
       showAddSubtask,
       subtaskSummary,
       createSubtask,
