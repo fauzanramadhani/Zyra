@@ -231,15 +231,11 @@ model Project {
   statuses        Status[]
   releases        Release[]
   automationRules AutomationRule[]
-  issueTemplates  IssueTemplate[]
   savedFilters    SavedFilter[]
-  gitIntegrations GitIntegration[]
   workflows       Workflow[]
   recurringIssues RecurringIssue[]
   slaPolicies     SlaPolicy[]
-  approvalRules   ApprovalRule[]
   publicForms     PublicForm[]
-  emailInboxes    EmailInbox[]
   wikiSpaces      WikiSpace[]
   timesheets      Timesheet[]
 
@@ -402,11 +398,7 @@ model Issue {
   inwardLinks      IssueLink[]        @relation("InwardLinks")
   workLogs         WorkLog[]
   watchers         IssueWatcher[]
-  gitCommits       GitCommit[]
-  gitBranches      GitBranch[]
-  gitPRs           GitPullRequest[]
   slaTrackers      SlaTracker[]
-  approvalRequests ApprovalRequest[]
 
   @@index([statusId, order])
 }
@@ -673,23 +665,7 @@ model AutomationExecution {
   @@index([startedAt])
 }
 
-// --- Issue Templates ---
-model IssueTemplate {
-  id          String    @id @default(uuid())
-  name        String
-  projectId   String
-  type        String // "STORY", "TASK", "BUG", "EPIC"
-  summary     String?
-  description String?
-  priority    String?
-  labels      String? // JSON array of label IDs
-  storyPoints Float?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
 
 // --- Planning Poker / Estimation Sessions ---
 model EstimationSession {
@@ -723,79 +699,7 @@ model EstimationVote {
 // EXPANDED FEATURES
 // ============================================
 
-// --- Git Integration ---
-model GitIntegration {
-  id            String   @id @default(uuid())
-  projectId     String
-  provider      String // "GITHUB", "GITLAB", "BITBUCKET"
-  repoUrl       String
-  repoName      String
-  accessToken   String? // Encrypted
-  webhookSecret String?
-  enabled       Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
 
-  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  commits      GitCommit[]
-  branches     GitBranch[]
-  pullRequests GitPullRequest[]
-
-  @@unique([projectId, repoUrl])
-}
-
-model GitCommit {
-  id            String   @id @default(uuid())
-  integrationId String
-  issueId       String?
-  sha           String
-  message       String
-  authorName    String
-  authorEmail   String
-  committedAt   DateTime
-  url           String?
-  createdAt     DateTime @default(now())
-
-  integration GitIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  issue       Issue?         @relation(fields: [issueId], references: [id], onDelete: SetNull)
-
-  @@unique([integrationId, sha])
-}
-
-model GitBranch {
-  id            String   @id @default(uuid())
-  integrationId String
-  issueId       String?
-  name          String
-  url           String?
-  createdAt     DateTime @default(now())
-
-  integration GitIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  issue       Issue?         @relation(fields: [issueId], references: [id], onDelete: SetNull)
-
-  @@unique([integrationId, name])
-}
-
-model GitPullRequest {
-  id            String    @id @default(uuid())
-  integrationId String
-  issueId       String?
-  prNumber      Int
-  title         String
-  status        String // "OPEN", "MERGED", "CLOSED"
-  authorName    String
-  url           String?
-  sourceBranch  String
-  targetBranch  String
-  mergedAt      DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  integration GitIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  issue       Issue?         @relation(fields: [issueId], references: [id], onDelete: SetNull)
-
-  @@unique([integrationId, prNumber])
-}
 
 // --- Custom Workflows ---
 model Workflow {
@@ -912,33 +816,34 @@ model RecurringExecution {
 
 // --- SLA Tracking ---
 model SlaPolicy {
-  id                String    @id @default(uuid())
-  name              String
-  projectId         String
-  priority          String // "LOW", "MEDIUM", "HIGH", "HIGHEST" or "*" for all
-  responseTimeMin   Int // Minutes to first response
-  resolutionTimeMin Int // Minutes to resolution
-  enabled           Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  deletedAt         DateTime?
+  id                      String    @id @default(uuid())
+  name                    String
+  projectId               String
+  priority                String // "LOW", "MEDIUM", "HIGH", "HIGHEST" or "*" for all
+  startWorkTimeMin        Int // Minutes to start work
+  resolutionTimeMin       Int // Minutes to resolution
+  warningThresholdPercent Int       @default(20) // Warning threshold percent (10, 20, 30, etc.)
+  enabled                 Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  deletedAt               DateTime?
 
   project  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   trackers SlaTracker[]
 }
 
 model SlaTracker {
-  id                 String    @id @default(uuid())
-  slaPolicyId        String
-  issueId            String
-  responseDeadline   DateTime?
-  resolutionDeadline DateTime?
-  respondedAt        DateTime?
-  resolvedAt         DateTime?
-  breached           Boolean   @default(false)
-  breachType         String? // "RESPONSE", "RESOLUTION", "BOTH"
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                      String    @id @default(uuid())
+  slaPolicyId             String
+  issueId                 String
+  startWorkDeadline       DateTime?
+  resolutionDeadline      DateTime?
+  startedWorkAt           DateTime?
+  resolvedAt              DateTime?
+  startWorkTargetMinutes  Int?
+  resolutionTargetMinutes Int?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   slaPolicy SlaPolicy @relation(fields: [slaPolicyId], references: [id], onDelete: Cascade)
   issue     Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
@@ -1008,48 +913,7 @@ model GoalLink {
   @@unique([goalId, entityType, entityId])
 }
 
-// --- Approval Workflows ---
-model ApprovalRule {
-  id                String    @id @default(uuid())
-  projectId         String
-  name              String
-  triggerStatus     String // Status ID that triggers approval
-  targetStatus      String // Status to move to after approval
-  requiredApprovals Int       @default(1)
-  approverIds       String // JSON array of user IDs
-  enabled           Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  deletedAt         DateTime?
 
-  project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  requests ApprovalRequest[]
-}
-
-model ApprovalRequest {
-  id          String   @id @default(uuid())
-  ruleId      String
-  issueId     String
-  requestedBy String
-  status      String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  rule      ApprovalRule       @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-  issue     Issue              @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  responses ApprovalResponse[]
-}
-
-model ApprovalResponse {
-  id        String   @id @default(uuid())
-  requestId String
-  userId    String
-  decision  String // "APPROVED", "REJECTED"
-  comment   String?
-  createdAt DateTime @default(now())
-
-  request ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-}
 
 // --- Wiki / Knowledge Base ---
 model WikiSpace {
@@ -1128,37 +992,7 @@ model FormSubmission {
   form PublicForm @relation(fields: [formId], references: [id], onDelete: Cascade)
 }
 
-// --- Email-to-Issue ---
-model EmailInbox {
-  id              String    @id @default(uuid())
-  projectId       String
-  emailAddress    String    @unique // e.g. "bugs-phx@zyra.local"
-  defaultType     String    @default("BUG")
-  defaultPriority String    @default("MEDIUM")
-  assigneeId      String?
-  enabled         Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
 
-  project Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  emails  IncomingEmail[]
-}
-
-model IncomingEmail {
-  id          String    @id @default(uuid())
-  inboxId     String
-  fromEmail   String
-  fromName    String?
-  subject     String
-  body        String
-  issueId     String? // Created issue ID
-  processedAt DateTime?
-  status      String    @default("PENDING") // "PENDING", "PROCESSED", "FAILED"
-  createdAt   DateTime  @default(now())
-
-  inbox EmailInbox @relation(fields: [inboxId], references: [id], onDelete: Cascade)
-}
 
 // --- Slack/Discord Integration ---
 model ChatIntegration {

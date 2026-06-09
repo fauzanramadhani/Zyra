@@ -211,9 +211,93 @@
         </div>
       </div>
 
+        <!-- SLA Metrics Section -->
+        <div v-if="slaReport" class="bg-white dark:bg-zyra-gray-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-zyra-gray-darkBorder p-5 space-y-6">
+          <h3 class="font-bold pb-2 border-b border-gray-100 dark:border-slate-700 uppercase tracking-wider text-xs text-slate-500 dark:text-slate-300">
+            SLA Compliance & Violations
+          </h3>
+          
+          <!-- Summary Cards for SLA -->
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Work SLA Compliance</p>
+              <p class="text-2xl font-black mt-1" :class="slaRateColor(slaReport.startWorkCompliance)">{{ slaReport.startWorkCompliance }}%</p>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Resolution SLA Compliance</p>
+              <p class="text-2xl font-black mt-1" :class="slaRateColor(slaReport.resolutionCompliance)">{{ slaReport.resolutionCompliance }}%</p>
+            </div>
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Breached Issues</p>
+              <p class="text-2xl font-black mt-1 text-red-500">{{ slaReport.totalBreached }}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- SLA Performance per Priority -->
+            <div class="space-y-4">
+              <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Compliance by Priority</h4>
+              <div class="space-y-3">
+                <div v-for="item in slaReport.performanceByPriority" :key="item.priority" class="space-y-1">
+                  <div class="flex justify-between text-xs font-medium">
+                    <span>{{ item.priority }} Priority</span>
+                    <span>{{ item.rate }}% ({{ item.count }} issues)</span>
+                  </div>
+                  <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                    <div 
+                      class="h-2 rounded-full transition-all duration-300"
+                      :class="slaBarColor(item.rate)"
+                      :style="{ width: item.rate + '%' }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top SLA Violators -->
+            <div class="space-y-4">
+              <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Top SLA Violators</h4>
+              <div v-if="slaReport.topViolators && slaReport.topViolators.length > 0" class="divide-y divide-gray-150 dark:divide-slate-750 text-xs">
+                <div v-for="v in slaReport.topViolators" :key="v.name" class="flex justify-between py-2 items-center">
+                  <span class="font-semibold text-slate-700 dark:text-slate-300">{{ v.name }}</span>
+                  <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-extrabold text-[10px] uppercase">
+                    {{ v.count }} breaches
+                  </span>
+                </div>
+              </div>
+              <p v-else class="text-xs text-slate-400 italic py-2">No SLA breaches logged yet. Excellent job!</p>
+            </div>
+          </div>
+
+          <!-- Open Issues Near Breach -->
+          <div v-if="slaReport.openNearBreach && slaReport.openNearBreach.length > 0" class="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+            <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">⚠️ Open Issues Near Breach</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 text-slate-500 font-bold uppercase">
+                    <th class="p-2.5">Key</th>
+                    <th class="p-2.5">Summary</th>
+                    <th class="p-2.5">Priority</th>
+                    <th class="p-2.5 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-150 dark:divide-slate-750 text-slate-700 dark:text-slate-300">
+                  <tr v-for="issue in slaReport.openNearBreach" :key="issue.id" class="hover:bg-slate-50/50">
+                    <td class="p-2.5 font-bold text-zyra-primary">{{ issue.key }}</td>
+                    <td class="p-2.5 truncate max-w-[200px]">{{ issue.summary }}</td>
+                    <td class="p-2.5 font-semibold">{{ issue.priority }}</td>
+                    <td class="p-2.5 text-right font-extrabold text-amber-600">DUE SOON</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
-  </div>
-</template>
+  </template>
 
 <script lang="ts">
 import { defineComponent, ref, computed, watch } from 'vue';
@@ -237,6 +321,8 @@ export default defineComponent({
 
     const projectId = computed(() => route.params.projectId as string);
 
+    const slaReport = ref<any>(null);
+
     const fetchAnalytics = async () => {
       if (!projectId.value) return;
 
@@ -250,6 +336,16 @@ export default defineComponent({
         console.error('Failed to load analytics metrics:', err);
       } finally {
         loading.value = false;
+      }
+
+      // Fetch SLA Report
+      try {
+        const slaRes = await api.get(`/projects/${projectId.value}/sla/report`);
+        if (slaRes.data.success) {
+          slaReport.value = slaRes.data.data;
+        }
+      } catch (err) {
+        console.error('Failed to load SLA report:', err);
       }
 
       // Fetch sprints for burndown selector
@@ -312,6 +408,19 @@ export default defineComponent({
       sprintOptions,
       fetchBurndown,
       showHelp,
+      slaReport,
+      slaRateColor(rate: number) {
+        if (rate === undefined || rate === null) return 'text-slate-400';
+        if (rate >= 80) return 'text-green-600';
+        if (rate >= 50) return 'text-amber-500';
+        return 'text-red-500';
+      },
+      slaBarColor(rate: number) {
+        if (rate === undefined || rate === null) return 'bg-slate-350';
+        if (rate >= 80) return 'bg-green-500';
+        if (rate >= 50) return 'bg-amber-500';
+        return 'bg-red-500';
+      },
     };
   },
 });

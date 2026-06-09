@@ -25,7 +25,7 @@ export async function scheduleRecurringJob(recurringId: string): Promise<void> {
     'run-recurring',
     { recurringId },
     {
-      jobId: `recurring:${recurringId}`,
+      jobId: `recurring-${recurringId}`,
       delay: delay > 0 ? delay : 0,
     }
   );
@@ -36,10 +36,10 @@ export async function scheduleRecurringJob(recurringId: string): Promise<void> {
  * Removes the delayed job associated with a RecurringIssue from BullMQ.
  */
 export async function removeRecurringJob(recurringId: string): Promise<void> {
-  const job = await recurringQueue.getJob(`recurring:${recurringId}`);
+  const job = await recurringQueue.getJob(`recurring-${recurringId}`);
   if (job) {
     await job.remove();
-    console.log(`[Scheduler] Removed job recurring:${recurringId} from queue`);
+    console.log(`[Scheduler] Removed job recurring-${recurringId} from queue`);
   }
 }
 
@@ -58,7 +58,7 @@ export async function recoverRecurringSchedules(): Promise<void> {
   let recoveredCount = 0;
 
   for (const schedule of activeSchedules) {
-    const job = await recurringQueue.getJob(`recurring:${schedule.id}`);
+    const job = await recurringQueue.getJob(`recurring-${schedule.id}`);
     const state = job ? await job.getState() : null;
 
     // Reschedule if the job does not exist, or if it has already ran (is completed/failed)

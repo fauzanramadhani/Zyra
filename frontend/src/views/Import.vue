@@ -8,7 +8,7 @@
     </div>
 
     <!-- Step Progress Bar -->
-    <div class="flex items-center gap-2 mb-8 bg-white dark:bg-zyra-gray-darkCard p-4 rounded-xl border border-gray-200 dark:border-zyra-gray-darkBorder shadow-sm max-w-3xl">
+    <div class="flex items-center gap-2 mb-8 bg-white dark:bg-zyra-gray-darkCard p-4 rounded-xl border border-gray-200 dark:border-zyra-gray-darkBorder shadow-sm w-full">
       <div v-for="step in steps" :key="step.number" class="flex items-center gap-2 flex-grow last:flex-grow-0">
         <div
           :class="stepNumberClass(step.number)"
@@ -23,13 +23,13 @@
     </div>
 
     <!-- Step 1: Upload file panel -->
-    <div v-if="currentStep === 1" class="flex-grow flex flex-col justify-center items-center max-w-3xl bg-white dark:bg-zyra-gray-darkCard border border-gray-200 dark:border-zyra-gray-darkBorder rounded-xl shadow-sm p-8">
+    <div v-if="currentStep === 1" class="flex-grow flex flex-col justify-center items-center w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm p-8">
       <div
         @dragover.prevent="isDragging = true"
         @dragleave.prevent="isDragging = false"
         @drop.prevent="handleFileDrop"
         :class="{ 'border-zyra-primary bg-orange-50/20': isDragging }"
-        class="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl p-12 text-center bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 dark:hover:bg-slate-700 transition cursor-pointer w-full"
+        class="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-xl p-12 text-center bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition cursor-pointer w-full"
         @click="$refs.csvInput.click()"
       >
         <input type="file" ref="csvInput" class="hidden" accept=".csv" @change="handleFileSelect" />
@@ -44,11 +44,11 @@
     </div>
 
     <!-- Step 2: Mapping panel -->
-    <div v-else-if="currentStep === 2 && previewData" class="flex-grow flex flex-col overflow-hidden max-w-4xl bg-white dark:bg-zyra-gray-darkCard border border-gray-200 dark:border-zyra-gray-darkBorder rounded-xl shadow-sm">
-      <div class="p-5 border-b border-gray-200 dark:border-zyra-gray-darkBorder flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+    <div v-else-if="currentStep === 2 && previewData" class="flex-grow flex flex-col overflow-hidden w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm">
+      <div class="p-5 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
         <div>
-          <h3 class="font-bold text-sm text-slate-800">Map CSV Headers to Fields</h3>
-          <p class="text-xs text-slate-400">Match your source columns to target fields. Columns not mapped will be saved as Custom Metadata.</p>
+          <h3 class="font-bold text-sm text-slate-800 dark:text-white">Map CSV Headers to Fields</h3>
+          <p class="text-xs text-slate-400 dark:text-slate-400">Match your source columns to target fields. Columns not mapped will be saved as Custom Metadata.</p>
         </div>
         <span class="text-xs text-slate-400 font-bold bg-white dark:bg-slate-800 px-3 py-1 rounded-lg border border-gray-200 dark:border-slate-700">
           Filename: {{ previewData.originalName }}
@@ -97,8 +97,8 @@
       </div>
 
       <!-- Footer navigation -->
-      <div class="p-4 border-t border-gray-200 flex justify-between bg-slate-50">
-        <button @click="currentStep = 1" class="px-4 py-2 border border-gray-300 text-slate-500 font-bold rounded-lg text-xs hover:bg-slate-100 transition">
+      <div class="p-4 border-t border-gray-200 dark:border-slate-700 flex justify-between bg-slate-50 dark:bg-slate-800/50">
+        <button @click="currentStep = 1" class="px-4 py-2 border border-gray-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 font-bold rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-700 transition">
           Back
         </button>
         <button @click="currentStep = 3" class="px-4 py-2 bg-zyra-primary text-white font-bold rounded-lg text-xs hover:bg-zyra-primary-hover shadow transition">
@@ -108,16 +108,16 @@
     </div>
 
     <!-- Step 3: Config Options panel -->
-    <div v-else-if="currentStep === 3" class="flex-grow flex flex-col justify-between max-w-2xl bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+    <div v-else-if="currentStep === 3" class="flex-grow flex flex-col justify-between w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm p-6">
       <div>
-        <h3 class="font-bold text-sm mb-5 pb-2 border-b border-gray-100 text-slate-800">Import Configuration Options</h3>
+        <h3 class="font-bold text-sm mb-5 pb-2 border-b border-gray-100 dark:border-slate-700 text-slate-800 dark:text-white">Import Configuration Options</h3>
 
         <div class="space-y-4">
           <!-- Checkbox 1 -->
           <div class="flex items-start gap-3">
             <input type="checkbox" id="users" v-model="options.autoCreateUsers" class="mt-1 rounded text-zyra-primary focus:ring-zyra-primary" />
             <div>
-              <label for="users" class="text-xs font-bold text-slate-700 block">Auto-create Workspace Members</label>
+              <label for="users" class="text-xs font-bold text-slate-700 dark:text-slate-300 block">Auto-create Workspace Members</label>
               <span class="text-[10px] text-slate-400 block">If assignee email address isn't registered, create account with a default password.</span>
             </div>
           </div>
@@ -126,15 +126,24 @@
           <div class="flex items-start gap-3">
             <input type="checkbox" id="statuses" v-model="options.autoCreateStatuses" class="mt-1 rounded text-zyra-primary focus:ring-zyra-primary" />
             <div>
-              <label for="statuses" class="text-xs font-bold text-slate-700 block">Auto-create Workflow Statuses</label>
+              <label for="statuses" class="text-xs font-bold text-slate-700 dark:text-slate-300 block">Auto-create Workflow Statuses</label>
               <span class="text-[10px] text-slate-400 block">If issues contain statuses not defined in the project board, create them as columns.</span>
+            </div>
+          </div>
+
+          <!-- Checkbox 3 -->
+          <div class="flex items-start gap-3">
+            <input type="checkbox" id="labels" v-model="options.autoCreateLabels" class="mt-1 rounded text-zyra-primary focus:ring-zyra-primary" />
+            <div>
+              <label for="labels" class="text-xs font-bold text-slate-700 dark:text-slate-300 block">Auto-create Labels</label>
+              <span class="text-[10px] text-slate-400 block">If issues contain labels not defined in the project, automatically create them.</span>
             </div>
           </div>
 
           <!-- Select 1 -->
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1.5">Duplicate Issue Handling</label>
-            <select v-model="options.duplicateHandling" class="border border-gray-300 rounded px-3 py-1.5 text-xs bg-white focus:ring-1 focus:ring-zyra-primary outline-none">
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Duplicate Issue Handling</label>
+            <select v-model="options.duplicateHandling" class="border border-gray-300 dark:border-slate-600 rounded px-3 py-1.5 text-xs bg-white dark:bg-slate-850 dark:text-slate-200 focus:ring-1 focus:ring-zyra-primary outline-none">
               <option value="create_new">Generate new ticket keys sequentially (Default)</option>
               <option value="skip">Skip rows with matching keys</option>
               <option value="overwrite">Overwrite existing issues with matching keys</option>
@@ -144,8 +153,8 @@
       </div>
 
       <!-- Footer navigation -->
-      <div class="pt-6 border-t border-gray-200 flex justify-between">
-        <button @click="currentStep = 2" class="px-4 py-2 border border-gray-300 text-slate-500 font-bold rounded-lg text-xs hover:bg-slate-100 transition">
+      <div class="pt-6 border-t border-gray-200 dark:border-slate-700 flex justify-between mt-6">
+        <button @click="currentStep = 2" class="px-4 py-2 border border-gray-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 font-bold rounded-lg text-xs hover:bg-slate-100 dark:hover:bg-slate-700 transition">
           Back
         </button>
         <button @click="triggerStartImport" class="px-5 py-2 bg-zyra-primary text-white font-bold rounded-lg text-xs hover:bg-zyra-primary-hover shadow transition">
@@ -155,56 +164,56 @@
     </div>
 
     <!-- Step 4: Progress panel -->
-    <div v-else-if="currentStep === 4" class="flex-grow flex flex-col max-w-3xl bg-white border border-gray-200 rounded-xl shadow-sm p-6 overflow-hidden">
+    <div v-else-if="currentStep === 4" class="flex-grow flex flex-col w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm p-6 overflow-hidden">
       <div class="text-center mb-6">
-        <h3 class="font-bold text-base text-slate-800">Processing Import Job</h3>
+        <h3 class="font-bold text-base text-slate-800 dark:text-white">Processing Import Job</h3>
         <p class="text-xs text-slate-400 mt-1">Please do not close this window while streaming database records</p>
       </div>
 
       <!-- Progress bar -->
       <div class="space-y-2 mb-8">
-        <div class="flex justify-between text-xs font-bold text-slate-600">
+        <div class="flex justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
           <span>Job Status: <span class="text-zyra-primary uppercase">{{ importJob?.status }}</span></span>
-          <span>{{ importJob?.progress }}% ({{ importJob?.successRows + importJob?.failedRows }} / {{ importJob?.totalRows }} Rows)</span>
+          <span>{{ importJob?.progress }}% ({{ (importJob?.successRows || 0) + (importJob?.failedRows || 0) }} / {{ importJob?.totalRows || 0 }} Rows)</span>
         </div>
-        <div class="w-full bg-slate-100 rounded-full h-3">
+        <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-3">
           <div
             class="bg-gradient-to-r from-orange-400 to-orange-500 h-3 rounded-full transition-all duration-300"
-            :style="{ width: importJob?.progress + '%' }"
+            :style="{ width: (importJob?.progress || 0) + '%' }"
           ></div>
         </div>
       </div>
 
       <!-- Counters -->
       <div class="grid grid-cols-2 gap-4 mb-6">
-        <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-          <p class="text-[10px] text-green-600 font-extrabold uppercase">Success Records</p>
-          <p class="text-xl font-black text-green-700 mt-0.5">{{ importJob?.successRows }}</p>
+        <div class="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+          <p class="text-[10px] text-green-600 dark:text-green-400 font-extrabold uppercase">Success Records</p>
+          <p class="text-xl font-black text-green-700 dark:text-green-300 mt-0.5">{{ importJob?.successRows || 0 }}</p>
         </div>
-        <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-          <p class="text-[10px] text-red-500 font-extrabold uppercase">Failed Records</p>
-          <p class="text-xl font-black text-red-700 mt-0.5">{{ importJob?.failedRows }}</p>
+        <div class="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-center">
+          <p class="text-[10px] text-red-500 dark:text-red-400 font-extrabold uppercase">Failed Records</p>
+          <p class="text-xl font-black text-red-700 dark:text-red-300 mt-0.5">{{ importJob?.failedRows || 0 }}</p>
         </div>
       </div>
 
       <!-- Errors list box -->
       <div class="flex-grow flex flex-col overflow-hidden">
-        <h4 class="text-xs font-extrabold text-slate-500 uppercase tracking-wide mb-2">Error logs (first 50 errors)</h4>
-        <div class="flex-grow border border-gray-200 bg-gray-50 rounded-lg overflow-y-auto p-3 space-y-1.5 text-[10px] font-mono">
-          <div v-if="!importJob?.errors || importJob.errors.length === 0" class="text-center py-6 text-slate-400">
+        <h4 class="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Error logs (first 50 errors)</h4>
+        <div class="flex-grow border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 rounded-lg overflow-y-auto p-3 space-y-1.5 text-[10px] font-mono">
+          <div v-if="!importJob?.errors || importJob.errors.length === 0" class="text-center py-6 text-slate-400 dark:text-slate-500">
             No record violations logged. Excellent!
           </div>
 
-          <div v-for="err in importJob?.errors" :key="err.id" class="p-2 border-b border-gray-150 pb-1.5 last:border-0 last:pb-0">
+          <div v-for="err in importJob?.errors" :key="err.id" class="p-2 border-b border-gray-150 dark:border-slate-800 pb-1.5 last:border-0 last:pb-0">
             <span class="text-red-500 font-bold block">Row {{ err.rowNumber }}: {{ err.errorMessage }}</span>
-            <span class="text-slate-400 truncate block">Raw payload: {{ err.rawData }}</span>
+            <span class="text-slate-400 dark:text-slate-500 truncate block">Raw payload: {{ err.rawData }}</span>
           </div>
         </div>
       </div>
 
       <!-- Finish button -->
-      <div v-if="importJob?.status === 'COMPLETED' || importJob?.status === 'FAILED'" class="pt-5 border-t border-gray-200 mt-4 flex justify-end">
-        <button @click="finishImport" class="px-5 py-2 bg-slate-900 text-white font-bold rounded-lg text-xs hover:bg-slate-800 shadow transition">
+      <div v-if="importJob?.status === 'COMPLETED' || importJob?.status === 'FAILED'" class="pt-5 border-t border-gray-200 dark:border-slate-700 mt-4 flex justify-end">
+        <button @click="finishImport" class="px-5 py-2 bg-slate-900 dark:bg-slate-700 text-white font-bold rounded-lg text-xs hover:bg-slate-800 dark:hover:bg-slate-650 shadow transition">
           Return to Board
         </button>
       </div>

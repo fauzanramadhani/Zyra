@@ -45,6 +45,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/public/forms/:slug',
+    name: 'PublicFormSubmit',
+    component: () => import('../views/PublicFormSubmit.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
     path: '/project/:projectId',
     component: () => import('../views/Layout.vue'),
     meta: { requiresAuth: true },
@@ -93,11 +99,7 @@ const routes: RouteRecordRaw[] = [
         name: 'Automation',
         component: () => import('../views/Automation.vue'),
       },
-      {
-        path: 'templates',
-        name: 'Templates',
-        component: () => import('../views/Templates.vue'),
-      },
+
       {
         path: 'roadmap',
         name: 'Roadmap',
@@ -113,11 +115,7 @@ const routes: RouteRecordRaw[] = [
         name: 'Workflows',
         component: () => import('../views/Workflow.vue'),
       },
-      {
-        path: 'git',
-        name: 'GitIntegration',
-        component: () => import('../views/GitIntegration.vue'),
-      },
+
       {
         path: 'recurring',
         name: 'RecurringIssues',
@@ -133,11 +131,7 @@ const routes: RouteRecordRaw[] = [
         name: 'Goals',
         component: () => import('../views/Goals.vue'),
       },
-      {
-        path: 'approvals',
-        name: 'Approvals',
-        component: () => import('../views/Approvals.vue'),
-      },
+
       {
         path: 'wiki',
         name: 'Wiki',
@@ -148,11 +142,7 @@ const routes: RouteRecordRaw[] = [
         name: 'PublicForms',
         component: () => import('../views/PublicForms.vue'),
       },
-      {
-        path: 'email-inbox',
-        name: 'EmailInbox',
-        component: () => import('../views/EmailInbox.vue'),
-      },
+
       {
         path: 'chat-integrations',
         name: 'ChatIntegrations',
@@ -168,11 +158,7 @@ const routes: RouteRecordRaw[] = [
         name: 'Gantt',
         component: () => import('../views/Gantt.vue'),
       },
-      {
-        path: 'ai',
-        name: 'AiAssistant',
-        component: () => import('../views/AiAssistant.vue'),
-      },
+
     ],
   },
   {

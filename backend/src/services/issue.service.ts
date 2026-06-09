@@ -152,6 +152,10 @@ export class IssueService {
       syncGoalProgressOnIssueChange(issue.id, projectId, issue.epicId, issue.parentId);
     }
 
+    // SLA Engine Trigger
+    const { SlaEngine } = require('./sla.engine');
+    SlaEngine.createIssueTrackers(issue.id).catch((err: any) => console.error(err));
+
     return issue;
   }
 }

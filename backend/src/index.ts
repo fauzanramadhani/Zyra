@@ -14,6 +14,7 @@ import { initSocketIO } from './services/websocket.service';
 import { startImportWorker } from './workers/import.worker';
 import { startAutomationWorker } from './workers/automation.worker';
 import { startRecurringWorker } from './workers/recurring.worker';
+import { startSlaWorker } from './workers/sla.worker';
 import { recoverRecurringSchedules } from './services/recurring.service';
 import { errorHandler } from './middleware/error.middleware';
 
@@ -24,6 +25,7 @@ const httpServer = createServer(app);
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows assets like attachments to be loaded across origins
+    contentSecurityPolicy: false, // Disables CSP to allow Bull Board assets to load correctly
   })
 );
 
@@ -41,6 +43,30 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static uploads serving
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadDir));
+
+// Bull Board UI for Queue Monitoring
+import { createBullBoard } from '@bull-board/api';
+import { ExpressAdapter } from '@bull-board/express';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { importQueue } from './services/import.queue';
+import { automationQueue } from './services/automation.queue';
+import { recurringQueue } from './queues/recurring.queue';
+import { slaQueue } from './queues/sla.queue';
+
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath('/admin/queues');
+
+createBullBoard({
+  queues: [
+    new BullMQAdapter(importQueue),
+    new BullMQAdapter(automationQueue),
+    new BullMQAdapter(recurringQueue),
+    new BullMQAdapter(slaQueue),
+  ],
+  serverAdapter: serverAdapter,
+});
+
+app.use('/admin/queues', serverAdapter.getRouter());
 
 // API Routing Prefix
 app.use('/api', router);
@@ -73,6 +99,10 @@ console.log('BullMQ Automation background worker initialized');
 // Start Recurring Worker
 const recurringWorker = startRecurringWorker();
 console.log('BullMQ Recurring background worker initialized');
+
+// Start SLA Worker
+const slaWorker = startSlaWorker();
+console.log('BullMQ SLA background worker initialized');
 
 // Initialize issue ordering: assign sequential orders to existing issues that are unordered
 async function initializeIssueOrdering() {
@@ -128,6 +158,7 @@ process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received. Shutting down gracefully...');
   await importWorker.close();
   await recurringWorker.close();
+  await slaWorker.close();
   httpServer.close(() => {
     console.log('HTTP Server closed.');
     process.exit(0);

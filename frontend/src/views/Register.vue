@@ -59,14 +59,24 @@
 
         <div>
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Password</label>
-          <input
-            type="password"
-            v-model="password"
-            required
-            maxlength="128"
-            placeholder="Min 6 characters"
-            class="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm"
-          />
+          <div class="relative">
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              v-model="password"
+              required
+              maxlength="128"
+              placeholder="Min 6 characters"
+              class="w-full border border-slate-300 dark:border-slate-600 rounded-lg pl-4 pr-10 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-zyra-primary focus:border-transparent bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm"
+            />
+            <button
+              type="button"
+              @click="togglePasswordVisibility"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <EyeIcon v-if="!showPassword" class="h-5 w-5" />
+              <EyeOffIcon v-else class="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <button
@@ -94,9 +104,14 @@
 import { defineComponent, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../store/auth';
+import { Eye as EyeIcon, EyeOff as EyeOffIcon } from 'lucide-vue-next';
 
 export default defineComponent({
   name: 'Register',
+  components: {
+    EyeIcon,
+    EyeOffIcon,
+  },
   setup() {
     const authStore = useAuthStore();
     const router = useRouter();
@@ -107,6 +122,11 @@ export default defineComponent({
     const password = ref('');
     const error = ref('');
     const loading = ref(false);
+    const showPassword = ref(false);
+
+    const togglePasswordVisibility = () => {
+      showPassword.value = !showPassword.value;
+    };
 
     const handleRegister = async () => {
       error.value = '';
@@ -136,6 +156,8 @@ export default defineComponent({
       password,
       error,
       loading,
+      showPassword,
+      togglePasswordVisibility,
       handleRegister,
     };
   },

@@ -56,6 +56,11 @@ export async function getBoard(req: Request, res: Response) {
                   where: { linkType: 'IS_BLOCKED_BY' },
                   select: { id: true },
                 },
+                slaTrackers: {
+                  include: {
+                    slaPolicy: true,
+                  },
+                },
               },
             },
           },
@@ -67,17 +72,24 @@ export async function getBoard(req: Request, res: Response) {
       return sendError(res, 404, 'Board not found');
     }
 
-    // Transform: add isBlocked flag and remove raw inwardLinks from response
+    // Transform: add isBlocked flag and format SLA trackers
     const transformed = {
       ...board,
       columns: board.columns.map((col) => ({
         ...col,
-        issues: col.issues.map((issue) => ({
-          ...issue,
-          isBlocked: issue.inwardLinks.length > 0 || issue.outwardLinks.length > 0,
-          inwardLinks: undefined,
-          outwardLinks: undefined,
-        })),
+        issues: col.issues.map((issue) => {
+          const formattedSla = issue.slaTrackers.map((t: any) => {
+            const { formatSlaMetadata } = require('./sla.controller');
+            return formatSlaMetadata(t);
+          });
+          return {
+            ...issue,
+            isBlocked: issue.inwardLinks.length > 0 || issue.outwardLinks.length > 0,
+            inwardLinks: undefined,
+            outwardLinks: undefined,
+            slaTrackers: formattedSla,
+          };
+        }),
       })),
     };
 

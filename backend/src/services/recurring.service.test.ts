@@ -97,7 +97,7 @@ describe('Recurring Issues Auto Scheduler Tests', () => {
         'run-recurring',
         { recurringId: 'rec-1' },
         {
-          jobId: 'recurring:rec-1',
+          jobId: 'recurring-rec-1',
           delay: 10 * 60 * 1000, // 10 minutes in ms
         }
       );
@@ -122,7 +122,7 @@ describe('Recurring Issues Auto Scheduler Tests', () => {
         'run-recurring',
         { recurringId: 'rec-2' },
         {
-          jobId: 'recurring:rec-2',
+          jobId: 'recurring-rec-2',
           delay: 0,
         }
       );
@@ -163,7 +163,7 @@ describe('Recurring Issues Auto Scheduler Tests', () => {
 
       await removeRecurringJob('rec-1');
 
-      expect(recurringQueue.getJob).toHaveBeenCalledWith('recurring:rec-1');
+      expect(recurringQueue.getJob).toHaveBeenCalledWith('recurring-rec-1');
       expect(mockJob.remove).toHaveBeenCalled();
     });
 
@@ -172,7 +172,7 @@ describe('Recurring Issues Auto Scheduler Tests', () => {
 
       await removeRecurringJob('rec-missing-job');
 
-      expect(recurringQueue.getJob).toHaveBeenCalledWith('recurring:rec-missing-job');
+      expect(recurringQueue.getJob).toHaveBeenCalledWith('recurring-rec-missing-job');
     });
   });
 
@@ -190,14 +190,14 @@ describe('Recurring Issues Auto Scheduler Tests', () => {
       // rec-active-2 exists but state is 'completed'
       // rec-active-3 exists and state is 'delayed' (no recovery needed)
       (recurringQueue.getJob as jest.Mock).mockImplementation((jobId: string) => {
-        if (jobId === 'recurring:rec-active-1') return Promise.resolve(null);
-        if (jobId === 'recurring:rec-active-2') {
+        if (jobId === 'recurring-rec-active-1') return Promise.resolve(null);
+        if (jobId === 'recurring-rec-active-2') {
           return Promise.resolve({
             getState: jest.fn().mockResolvedValue('completed'),
             remove: jest.fn().mockResolvedValue(undefined),
           });
         }
-        if (jobId === 'recurring:rec-active-3') {
+        if (jobId === 'recurring-rec-active-3') {
           return Promise.resolve({
             getState: jest.fn().mockResolvedValue('delayed'),
           });

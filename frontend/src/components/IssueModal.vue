@@ -260,6 +260,35 @@
             </select>
           </div>
 
+          <!-- SLA tracking widget -->
+          <div class="p-3 bg-slate-100/50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-lg space-y-2.5">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">SLA Targets</label>
+            <div v-if="slaTrackers && slaTrackers.length > 0" class="space-y-2">
+              <div v-for="sla in slaTrackers" :key="sla.id" class="p-2.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 space-y-2">
+                <div class="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-705 pb-1">
+                  Policy: {{ sla.slaPolicy?.name }}
+                </div>
+                
+                <!-- Start Work SLA Status -->
+                <div v-if="sla.startWorkStatus !== 'NONE'" class="flex justify-between items-center text-xs">
+                  <span class="text-slate-500 dark:text-slate-400">Start Work:</span>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border" :class="slaBadgeClass(sla.startWorkStatus)">
+                    {{ slaStatusLabel(sla.startWorkStatus, sla.remainingStartWorkMs, sla.overdueStartWorkMs) }}
+                  </span>
+                </div>
+
+                <!-- Resolution SLA Status -->
+                <div v-if="sla.resolutionStatus !== 'NONE'" class="flex justify-between items-center text-xs">
+                  <span class="text-slate-500 dark:text-slate-400">Resolution:</span>
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase border" :class="slaBadgeClass(sla.resolutionStatus)">
+                    {{ slaStatusLabel(sla.resolutionStatus, sla.remainingResolutionMs, sla.overdueResolutionMs) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-xs text-slate-400 italic">No SLA policy configured for this issue priority.</div>
+          </div>
+
           <!-- Assignee select -->
           <div>
             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 mb-1.5">Assignee</label>
@@ -549,11 +578,22 @@ export default defineComponent({
           loadIssueLinks(id).catch(e => console.error('Links load failed:', e));
           loadWatchers(id).catch(e => console.error('Watchers load failed:', e));
           loadTimeSummary(id).catch(e => console.error('Time summary failed:', e));
+          loadSlaTrackers(id).catch(e => console.error('SLA load failed:', e));
         }
       } catch (err) {
         console.error('Failed to load issue details:', err);
       } finally {
         loading.value = false;
+      }
+    };
+
+    const slaTrackers = ref<any[]>([]);
+    const loadSlaTrackers = async (id: string) => {
+      try {
+        const res = await api.get(`/issues/${id}/sla`);
+        slaTrackers.value = res.data?.data || [];
+      } catch (err) {
+        slaTrackers.value = [];
       }
     };
 
@@ -945,6 +985,37 @@ export default defineComponent({
       showLogTimeModal,
       logTimeForm,
       logTime,
+      slaTrackers,
+      slaBadgeClass(status: string) {
+        switch (status) {
+          case 'MET':
+            return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800';
+          case 'MET_LATE':
+          case 'BREACHED':
+            return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800 animate-pulse';
+          case 'DUE_SOON':
+            return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800';
+          default:
+            return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+        }
+      },
+      slaStatusLabel(status: string, remainingMs: number | null, overdueMs: number | null) {
+        if (status === 'MET') return 'Met';
+        if (status === 'MET_LATE') return 'Met Late';
+        
+        const timeMs = status === 'BREACHED' ? overdueMs : remainingMs;
+        if (timeMs === null || timeMs === undefined) return status;
+        
+        const minutes = Math.floor(timeMs / 1000 / 60);
+        if (minutes < 60) {
+          return status === 'BREACHED' ? `Overdue ${minutes}m` : `${minutes}m left`;
+        }
+        const hours = Math.floor(minutes / 60);
+        const remainingMins = minutes % 60;
+        return status === 'BREACHED' 
+          ? `Overdue ${hours}h ${remainingMins}m` 
+          : `${hours}h ${remainingMins}m left`;
+      },
     };
   },
 });

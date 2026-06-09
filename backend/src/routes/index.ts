@@ -25,25 +25,19 @@ import * as watcherController from '../controllers/watcher.controller';
 import * as filterController from '../controllers/filter.controller';
 import * as releaseController from '../controllers/release.controller';
 import * as automationController from '../controllers/automation.controller';
-import * as templateController from '../controllers/template.controller';
 import * as estimationController from '../controllers/estimation.controller';
 import * as bulkController from '../controllers/bulk.controller';
 import * as chartsController from '../controllers/charts.controller';
 // New Feature Controllers
 import * as dashboardController from '../controllers/dashboard.controller';
 import * as workflowController from '../controllers/workflow.controller';
-import * as gitController from '../controllers/git.controller';
 import * as recurringController from '../controllers/recurring.controller';
 import * as slaController from '../controllers/sla.controller';
-import * as goalController from '../controllers/goal.controller';
-import * as approvalController from '../controllers/approval.controller';
 import * as wikiController from '../controllers/wiki.controller';
 import * as formController from '../controllers/form.controller';
-import * as emailController from '../controllers/email.controller';
 import * as chatController from '../controllers/chat.controller';
 import * as timesheetController from '../controllers/timesheet.controller';
 import * as ganttController from '../controllers/gantt.controller';
-import * as aiController from '../controllers/ai.controller';
 
 const router = Router();
 
@@ -198,12 +192,7 @@ router.delete('/automations/:ruleId', authenticateToken, automationController.de
 router.post('/automations/:ruleId/toggle', authenticateToken, automationController.toggleRule);
 router.post('/automations/:ruleId/test', authenticateToken, automationController.testRule);
 
-// --- Issue Template Routes ---
-router.get('/projects/:projectId/templates', authenticateToken, templateController.listTemplates);
-router.post('/projects/:projectId/templates', authenticateToken, templateController.createTemplate);
-router.get('/templates/:templateId', authenticateToken, templateController.getTemplate);
-router.patch('/templates/:templateId', authenticateToken, templateController.updateTemplate);
-router.delete('/templates/:templateId', authenticateToken, templateController.deleteTemplate);
+
 
 // --- Planning Poker / Estimation Routes ---
 router.post('/sprints/:sprintId/estimation', authenticateToken, estimationController.createSession);
@@ -247,19 +236,7 @@ router.delete('/workflow-states/:stateId', authenticateToken, workflowController
 router.post('/workflows/:workflowId/transitions', authenticateToken, workflowController.addTransition);
 router.delete('/workflow-transitions/:transitionId', authenticateToken, workflowController.deleteTransition);
 
-// --- Git Integration Routes ---
-router.get('/projects/:projectId/git', authenticateToken, gitController.listIntegrations);
-router.post('/projects/:projectId/git', authenticateToken, gitController.createIntegration);
-router.patch('/git/:integrationId', authenticateToken, gitController.updateIntegration);
-router.delete('/git/:integrationId', authenticateToken, gitController.deleteIntegration);
-router.get('/issues/:issueId/git/commits', authenticateToken, gitController.listCommits);
-router.post('/git/commits', authenticateToken, gitController.linkCommit);
-router.get('/issues/:issueId/git/branches', authenticateToken, gitController.listBranches);
-router.post('/git/branches', authenticateToken, gitController.linkBranch);
-router.get('/issues/:issueId/git/pull-requests', authenticateToken, gitController.listPullRequests);
-router.post('/git/pull-requests', authenticateToken, gitController.linkPullRequest);
-router.post('/git/:integrationId/webhook', gitController.handleWebhook);
-router.get('/issues/:issueId/git/suggest-branch', authenticateToken, gitController.suggestBranchName);
+
 
 // --- Recurring Issues Routes ---
 router.get('/projects/:projectId/recurring', authenticateToken, recurringController.listRecurringIssues);
@@ -279,27 +256,7 @@ router.post('/issues/:issueId/sla/respond', authenticateToken, slaController.mar
 router.post('/issues/:issueId/sla/resolve', authenticateToken, slaController.markResolved);
 router.get('/projects/:projectId/sla/report', authenticateToken, slaController.getSlaReport);
 
-// --- Goals & OKR Routes ---
-router.get('/goals', authenticateToken, goalController.listGoals);
-router.post('/goals', authenticateToken, goalController.createGoal);
-router.get('/goals/:goalId', authenticateToken, goalController.getGoal);
-router.patch('/goals/:goalId', authenticateToken, goalController.updateGoal);
-router.post('/goals/:goalId/progress', authenticateToken, goalController.updateGoalProgressManual);
-router.delete('/goals/:goalId', authenticateToken, goalController.deleteGoal);
-router.post('/goals/:goalId/links', authenticateToken, goalController.linkEntity);
-router.delete('/goals/:goalId/links/:linkId', authenticateToken, goalController.unlinkEntity);
-router.post('/goals/:goalId/archive', authenticateToken, goalController.archiveGoal);
-router.post('/goals/:goalId/unarchive', authenticateToken, goalController.unarchiveGoal);
 
-// --- Approval Workflow Routes ---
-router.get('/projects/:projectId/approvals/rules', authenticateToken, approvalController.listRules);
-router.post('/projects/:projectId/approvals/rules', authenticateToken, approvalController.createRule);
-router.patch('/approvals/rules/:ruleId', authenticateToken, approvalController.updateRule);
-router.delete('/approvals/rules/:ruleId', authenticateToken, approvalController.deleteRule);
-router.post('/issues/:issueId/approvals', authenticateToken, approvalController.requestApproval);
-router.get('/issues/:issueId/approvals', authenticateToken, approvalController.listApprovalRequests);
-router.post('/approvals/:requestId/respond', authenticateToken, approvalController.respondToApproval);
-router.get('/approvals/pending', authenticateToken, approvalController.getPendingApprovals);
 
 // --- Wiki / Knowledge Base Routes ---
 router.get('/wiki/spaces', authenticateToken, wikiController.listSpaces);
@@ -322,13 +279,7 @@ router.get('/forms/:formId/submissions', authenticateToken, formController.listS
 router.get('/public/forms/:slug', formController.getFormBySlug); // No auth - public
 router.post('/public/forms/:slug/submit', formController.submitForm); // No auth - public
 
-// --- Email-to-Issue Routes ---
-router.get('/projects/:projectId/email-inboxes', authenticateToken, emailController.listInboxes);
-router.post('/projects/:projectId/email-inboxes', authenticateToken, emailController.createInbox);
-router.patch('/email-inboxes/:inboxId', authenticateToken, emailController.updateInbox);
-router.delete('/email-inboxes/:inboxId', authenticateToken, emailController.deleteInbox);
-router.post('/email-inboxes/:inboxId/incoming', emailController.processIncomingEmail); // Webhook from mail service
-router.get('/email-inboxes/:inboxId/emails', authenticateToken, emailController.listEmails);
+
 
 // --- Chat Integration (Slack/Discord) Routes ---
 router.get('/workspaces/:workspaceId/chat-integrations', authenticateToken, chatController.listIntegrations);
@@ -352,10 +303,6 @@ router.get('/projects/:projectId/time-report', authenticateToken, timesheetContr
 router.get('/projects/:projectId/gantt', authenticateToken, ganttController.getGanttData);
 router.get('/projects/:projectId/dependency-graph', authenticateToken, ganttController.getDependencyGraph);
 
-// --- AI-Powered Features Routes ---
-router.post('/projects/:projectId/ai/suggest-assignee', authenticateToken, aiController.suggestAssignee);
-router.post('/projects/:projectId/ai/detect-duplicates', authenticateToken, aiController.detectDuplicates);
-router.get('/projects/:projectId/ai/sprint-suggestions', authenticateToken, aiController.sprintPlanningSuggestions);
-router.get('/issues/:issueId/ai/summary', authenticateToken, aiController.summarizeIssue);
+
 
 export default router;

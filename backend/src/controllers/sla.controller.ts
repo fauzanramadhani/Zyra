@@ -2,6 +2,86 @@ import { Request, Response } from 'express';
 import prisma from '../db';
 import { success, error } from '../utils/response';
 
+// Helper to compute SLA Status at runtime
+export function computeSlaStatus(
+  deadline: Date | null,
+  completedAt: Date | null,
+  targetMin: number | null,
+  warningPercent: number
+): 'MET' | 'MET_LATE' | 'BREACHED' | 'DUE_SOON' | 'ON_TRACK' | 'NONE' {
+  if (!deadline) return 'NONE';
+  if (completedAt) {
+    return completedAt.getTime() <= deadline.getTime() ? 'MET' : 'MET_LATE';
+  }
+  const now = Date.now();
+  const deadlineMs = deadline.getTime();
+  if (now > deadlineMs) return 'BREACHED';
+
+  if (targetMin) {
+    const warningOffsetMs = (warningPercent / 100) * targetMin * 60 * 1000;
+    const warningTimeMs = deadlineMs - warningOffsetMs;
+    if (now >= warningTimeMs) return 'DUE_SOON';
+  }
+  return 'ON_TRACK';
+}
+
+// Helper to construct extra SLA metadata for UI (remaining time, etc.)
+export function formatSlaMetadata(tracker: any) {
+  const warningPercent = tracker.slaPolicy?.warningThresholdPercent ?? 20;
+
+  const startWorkStatus = computeSlaStatus(
+    tracker.startWorkDeadline,
+    tracker.startedWorkAt,
+    tracker.startWorkTargetMinutes,
+    warningPercent
+  );
+
+  const resolutionStatus = computeSlaStatus(
+    tracker.resolutionDeadline,
+    tracker.resolvedAt,
+    tracker.resolutionTargetMinutes,
+    warningPercent
+  );
+
+  const now = Date.now();
+  
+  let remainingStartWorkMs = null;
+  if (!tracker.startedWorkAt && tracker.startWorkDeadline) {
+    remainingStartWorkMs = Math.max(0, tracker.startWorkDeadline.getTime() - now);
+  }
+
+  let remainingResolutionMs = null;
+  if (!tracker.resolvedAt && tracker.resolutionDeadline) {
+    remainingResolutionMs = Math.max(0, tracker.resolutionDeadline.getTime() - now);
+  }
+
+  let overdueStartWorkMs = null;
+  if (tracker.startWorkDeadline) {
+    const compTime = tracker.startedWorkAt ? tracker.startedWorkAt.getTime() : now;
+    if (compTime > tracker.startWorkDeadline.getTime()) {
+      overdueStartWorkMs = compTime - tracker.startWorkDeadline.getTime();
+    }
+  }
+
+  let overdueResolutionMs = null;
+  if (tracker.resolutionDeadline) {
+    const compTime = tracker.resolvedAt ? tracker.resolvedAt.getTime() : now;
+    if (compTime > tracker.resolutionDeadline.getTime()) {
+      overdueResolutionMs = compTime - tracker.resolutionDeadline.getTime();
+    }
+  }
+
+  return {
+    ...tracker,
+    startWorkStatus,
+    resolutionStatus,
+    remainingStartWorkMs,
+    remainingResolutionMs,
+    overdueStartWorkMs,
+    overdueResolutionMs,
+  };
+}
+
 // --- SLA Policies ---
 export const listPolicies = async (req: Request, res: Response) => {
   try {
@@ -19,9 +99,17 @@ export const listPolicies = async (req: Request, res: Response) => {
 export const createPolicy = async (req: Request, res: Response) => {
   try {
     const { projectId } = req.params;
-    const { name, priority, responseTimeMin, resolutionTimeMin, enabled } = req.body;
+    const { name, priority, startWorkTimeMin, resolutionTimeMin, warningThresholdPercent, enabled } = req.body;
     const policy = await prisma.slaPolicy.create({
-      data: { name, projectId, priority, responseTimeMin, resolutionTimeMin, enabled: enabled !== false },
+      data: {
+        name,
+        projectId,
+        priority,
+        startWorkTimeMin: parseInt(startWorkTimeMin),
+        resolutionTimeMin: parseInt(resolutionTimeMin),
+        warningThresholdPercent: warningThresholdPercent ? parseInt(warningThresholdPercent) : 20,
+        enabled: enabled !== false,
+      },
     });
     return success(res, policy, 201);
   } catch (e: any) {
@@ -32,8 +120,19 @@ export const createPolicy = async (req: Request, res: Response) => {
 export const updatePolicy = async (req: Request, res: Response) => {
   try {
     const { policyId } = req.params;
-    const data = req.body;
-    const policy = await prisma.slaPolicy.update({ where: { id: policyId }, data });
+    const { name, priority, startWorkTimeMin, resolutionTimeMin, warningThresholdPercent, enabled } = req.body;
+    
+    const policy = await prisma.slaPolicy.update({
+      where: { id: policyId },
+      data: {
+        name,
+        priority,
+        startWorkTimeMin: startWorkTimeMin !== undefined ? parseInt(startWorkTimeMin) : undefined,
+        resolutionTimeMin: resolutionTimeMin !== undefined ? parseInt(resolutionTimeMin) : undefined,
+        warningThresholdPercent: warningThresholdPercent !== undefined ? parseInt(warningThresholdPercent) : undefined,
+        enabled,
+      },
+    });
     return success(res, policy);
   } catch (e: any) {
     return error(res, e.message);
@@ -58,7 +157,9 @@ export const getIssueSlA = async (req: Request, res: Response) => {
       where: { issueId },
       include: { slaPolicy: true },
     });
-    return success(res, trackers);
+    
+    const formatted = trackers.map(t => formatSlaMetadata(t));
+    return success(res, formatted);
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -67,36 +168,14 @@ export const getIssueSlA = async (req: Request, res: Response) => {
 export const startSlaTracking = async (req: Request, res: Response) => {
   try {
     const { issueId } = req.params;
-    const issue = await prisma.issue.findUnique({ where: { id: issueId } });
-    if (!issue) return error(res, 'Issue not found', 404);
-
-    // Find applicable SLA policies
-    const policies = await prisma.slaPolicy.findMany({
-      where: {
-        projectId: issue.projectId,
-        enabled: true,
-        deletedAt: null,
-        OR: [{ priority: issue.priority }, { priority: '*' }],
-      },
+    const { SlaEngine } = require('../services/sla.engine');
+    await SlaEngine.createIssueTrackers(issueId);
+    
+    const trackers = await prisma.slaTracker.findMany({
+      where: { issueId },
+      include: { slaPolicy: true },
     });
-
-    const trackers = [];
-    for (const policy of policies) {
-      const now = new Date();
-      const tracker = await prisma.slaTracker.upsert({
-        where: { slaPolicyId_issueId: { slaPolicyId: policy.id, issueId } },
-        create: {
-          slaPolicyId: policy.id,
-          issueId,
-          responseDeadline: new Date(now.getTime() + policy.responseTimeMin * 60 * 1000),
-          resolutionDeadline: new Date(now.getTime() + policy.resolutionTimeMin * 60 * 1000),
-        },
-        update: {},
-      });
-      trackers.push(tracker);
-    }
-
-    return success(res, trackers);
+    return success(res, trackers.map(t => formatSlaMetadata(t)));
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -105,22 +184,9 @@ export const startSlaTracking = async (req: Request, res: Response) => {
 export const markResponded = async (req: Request, res: Response) => {
   try {
     const { issueId } = req.params;
-    const now = new Date();
-    const trackers = await prisma.slaTracker.findMany({ where: { issueId, respondedAt: null } });
-
-    for (const tracker of trackers) {
-      const breached = tracker.responseDeadline ? now > tracker.responseDeadline : false;
-      await prisma.slaTracker.update({
-        where: { id: tracker.id },
-        data: {
-          respondedAt: now,
-          breached: breached || tracker.breached,
-          breachType: breached ? (tracker.breachType === 'RESOLUTION' ? 'BOTH' : 'RESPONSE') : tracker.breachType,
-        },
-      });
-    }
-
-    return success(res, { message: 'SLA response recorded' });
+    const { SlaEngine } = require('../services/sla.engine');
+    await SlaEngine.handleStartWork(issueId);
+    return success(res, { message: 'SLA start work recorded' });
   } catch (e: any) {
     return error(res, e.message);
   }
@@ -129,47 +195,98 @@ export const markResponded = async (req: Request, res: Response) => {
 export const markResolved = async (req: Request, res: Response) => {
   try {
     const { issueId } = req.params;
-    const now = new Date();
-    const trackers = await prisma.slaTracker.findMany({ where: { issueId, resolvedAt: null } });
-
-    for (const tracker of trackers) {
-      const breached = tracker.resolutionDeadline ? now > tracker.resolutionDeadline : false;
-      await prisma.slaTracker.update({
-        where: { id: tracker.id },
-        data: {
-          resolvedAt: now,
-          breached: breached || tracker.breached,
-          breachType: breached ? (tracker.breachType === 'RESPONSE' ? 'BOTH' : 'RESOLUTION') : tracker.breachType,
-        },
-      });
-    }
-
+    const { SlaEngine } = require('../services/sla.engine');
+    await SlaEngine.handleResolution(issueId);
     return success(res, { message: 'SLA resolution recorded' });
   } catch (e: any) {
     return error(res, e.message);
   }
 };
 
-// --- SLA Report ---
+// --- SLA Analytics Dashboard Report ---
 export const getSlaReport = async (req: Request, res: Response) => {
   try {
     const { projectId } = req.params;
     const trackers = await prisma.slaTracker.findMany({
       where: { slaPolicy: { projectId } },
-      include: { slaPolicy: true, issue: { select: { key: true, summary: true, priority: true } } },
+      include: {
+        slaPolicy: true,
+        issue: {
+          select: {
+            id: true,
+            key: true,
+            summary: true,
+            priority: true,
+            assignee: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+          },
+        },
+      },
     });
 
-    const total = trackers.length;
-    const breached = trackers.filter(t => t.breached).length;
-    const met = total - breached;
-    const complianceRate = total > 0 ? Math.round((met / total) * 100) : 100;
+    const formattedTrackers = trackers.map(t => formatSlaMetadata(t));
+
+    // Calculate Start Work SLA Compliance
+    const startWorkSlas = formattedTrackers.filter(t => t.startWorkStatus !== 'NONE');
+    const startWorkMet = startWorkSlas.filter(t => t.startWorkStatus === 'MET').length;
+    const startWorkCompliance = startWorkSlas.length > 0 ? Math.round((startWorkMet / startWorkSlas.length) * 100) : 100;
+
+    // Calculate Resolution SLA Compliance
+    const resolutionSlas = formattedTrackers.filter(t => t.resolutionStatus !== 'NONE');
+    const resolutionMet = resolutionSlas.filter(t => t.resolutionStatus === 'MET').length;
+    const resolutionCompliance = resolutionSlas.length > 0 ? Math.round((resolutionMet / resolutionSlas.length) * 100) : 100;
+
+    const totalBreached = formattedTrackers.filter(
+      t => t.startWorkStatus === 'BREACHED' || t.startWorkStatus === 'MET_LATE' ||
+           t.resolutionStatus === 'BREACHED' || t.resolutionStatus === 'MET_LATE'
+    ).length;
+
+    // SLA performance per priority
+    const priorities = ['LOW', 'MEDIUM', 'HIGH', 'HIGHEST'];
+    const performanceByPriority = priorities.map(p => {
+      const pTrackers = formattedTrackers.filter(t => t.issue?.priority === p);
+      const metCount = pTrackers.filter(t => t.startWorkStatus === 'MET' && t.resolutionStatus === 'MET').length;
+      const rate = pTrackers.length > 0 ? Math.round((metCount / pTrackers.length) * 100) : 100;
+      return { priority: p, rate, count: pTrackers.length };
+    });
+
+    // Top SLA Violators (assignees with breached jobs)
+    const violatorMap: Record<string, { name: string, count: number }> = {};
+    formattedTrackers.forEach(t => {
+      const isBreached = t.startWorkStatus === 'BREACHED' || t.startWorkStatus === 'MET_LATE' ||
+                        t.resolutionStatus === 'BREACHED' || t.resolutionStatus === 'MET_LATE';
+      if (isBreached && t.issue?.assignee) {
+        const assignee = t.issue.assignee;
+        const fullName = `${assignee.firstName} ${assignee.lastName}`;
+        if (!violatorMap[assignee.id]) {
+          violatorMap[assignee.id] = { name: fullName, count: 0 };
+        }
+        violatorMap[assignee.id].count += 1;
+      }
+    });
+    const topViolators = Object.values(violatorMap).sort((a, b) => b.count - a.count).slice(0, 5);
+
+    // Open Issues Near SLA Breach
+    const openNearBreach = formattedTrackers.filter(
+      t => t.startWorkStatus === 'DUE_SOON' || t.resolutionStatus === 'DUE_SOON'
+    ).map(t => ({
+      id: t.issue.id,
+      key: t.issue.key,
+      summary: t.issue.summary,
+      priority: t.issue.priority,
+      startWorkStatus: t.startWorkStatus,
+      resolutionStatus: t.resolutionStatus,
+    }));
 
     return success(res, {
-      total,
-      breached,
-      met,
-      complianceRate,
-      trackers,
+      startWorkCompliance,
+      resolutionCompliance,
+      totalBreached,
+      performanceByPriority,
+      topViolators,
+      openNearBreach,
+      trackers: formattedTrackers,
     });
   } catch (e: any) {
     return error(res, e.message);

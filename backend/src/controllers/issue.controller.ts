@@ -320,7 +320,14 @@ export async function updateIssue(req: AuthenticatedRequest, res: Response) {
     if (Object.keys(changes).length > 0) {
       dispatchAutomationEvent('issue_updated', { projectId: updated.projectId, userId, issueId: updated.id, issue: updated, changes });
     }
+    if (changes.priority) {
+      const { SlaEngine } = require('../services/sla.engine');
+      SlaEngine.recalculatePrioritySla(updated.id).catch((err: any) => console.error(err));
+    }
     if (changes.statusId) {
+      const { SlaEngine } = require('../services/sla.engine');
+      SlaEngine.handleStatusChange(updated.id, changes.statusId.from, changes.statusId.to).catch((err: any) => console.error(err));
+
       dispatchAutomationEvent('issue_status_changed', {
         projectId: updated.projectId, userId, issueId: updated.id, issue: updated,
         fromStatusId: changes.statusId.from, toStatusId: changes.statusId.to,
@@ -404,6 +411,11 @@ export async function moveIssue(req: AuthenticatedRequest, res: Response) {
         status: true,
       },
     });
+
+    if (original.statusId !== statusId) {
+      const { SlaEngine } = require('../services/sla.engine');
+      SlaEngine.handleStatusChange(issueId, original.statusId, statusId).catch((err: any) => console.error(err));
+    }
 
     // Check if gap is too small and rebalance the column
     if (beforeIssueId && afterIssueId) {

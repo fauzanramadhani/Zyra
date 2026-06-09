@@ -140,6 +140,28 @@
             <!-- Card title -->
             <h4 class="text-sm font-semibold text-slate-700 dark:text-slate-200 line-clamp-2 leading-snug mb-1">{{ card.summary }}</h4>
 
+            <!-- SLA Badge Row -->
+            <div v-if="card.slaTrackers && card.slaTrackers.length > 0" class="flex flex-wrap gap-1.5 mt-1.5 mb-1 select-none">
+              <template v-for="sla in card.slaTrackers" :key="sla.id">
+                <span 
+                  v-if="sla.startWorkStatus !== 'NONE'"
+                  class="px-1.5 py-0.5 rounded text-[9px] font-bold border flex items-center gap-1"
+                  :class="slaBadgeClass(sla.startWorkStatus)"
+                  :title="`Start Work SLA target: ${sla.startWorkTargetMinutes}m`"
+                >
+                  Start: {{ formatSlaTime(sla.startWorkStatus, sla.remainingStartWorkMs, sla.overdueStartWorkMs) }}
+                </span>
+                <span 
+                  v-if="sla.resolutionStatus !== 'NONE'"
+                  class="px-1.5 py-0.5 rounded text-[9px] font-bold border flex items-center gap-1"
+                  :class="slaBadgeClass(sla.resolutionStatus)"
+                  :title="`Resolution SLA target: ${sla.resolutionTargetMinutes}m`"
+                >
+                  Res: {{ formatSlaTime(sla.resolutionStatus, sla.remainingResolutionMs, sla.overdueResolutionMs) }}
+                </span>
+              </template>
+            </div>
+
             <div class="flex justify-between items-center pt-2.5 border-t border-slate-100 dark:border-slate-700 mt-2.5">
               <div class="flex items-center gap-2">
                 <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider" :class="typeClass(card.type)">
@@ -621,6 +643,36 @@ export default defineComponent({
       boardScrollRef,
       activeColIdx,
       scrollToColumn,
+      slaBadgeClass(status: string) {
+        switch (status) {
+          case 'MET':
+            return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800';
+          case 'MET_LATE':
+          case 'BREACHED':
+            return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800 animate-pulse';
+          case 'DUE_SOON':
+            return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800';
+          default:
+            return 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+        }
+      },
+      formatSlaTime(status: string, remainingMs: number | null, overdueMs: number | null) {
+        if (status === 'MET') return 'Met';
+        if (status === 'MET_LATE') return 'Met Late';
+        
+        const timeMs = status === 'BREACHED' ? overdueMs : remainingMs;
+        if (timeMs === null || timeMs === undefined) return status;
+        
+        const minutes = Math.floor(timeMs / 1000 / 60);
+        if (minutes < 60) {
+          return status === 'BREACHED' ? `Overdue ${minutes}m` : `${minutes}m`;
+        }
+        const hours = Math.floor(minutes / 60);
+        const remainingMins = minutes % 60;
+        return status === 'BREACHED' 
+          ? `Overdue ${hours}h ${remainingMins}m` 
+          : `${hours}h ${remainingMins}m`;
+      },
     };
   },
 });
