@@ -55,8 +55,18 @@ export class IssueService {
       // 2. Resolve or Generate Issue Key
       let key = input.key;
       if (!key) {
-        const count = await txClient.issue.count({ where: { projectId } });
-        key = `${project.key}-${count + 1}`;
+        let count = await txClient.issue.count({ where: { projectId } });
+        let isUnique = false;
+        while (!isUnique) {
+          count++;
+          key = `${project.key}-${count}`;
+          const existing = await txClient.issue.findUnique({
+            where: { key }
+          });
+          if (!existing) {
+            isUnique = true;
+          }
+        }
       }
 
       // 3. Compute placement order (bottom of column)

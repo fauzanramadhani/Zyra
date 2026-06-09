@@ -12,9 +12,15 @@ export const suggestAssignee = async (req: Request, res: Response) => {
     const doneColumns = await prisma.boardColumn.findMany({ where: { name: 'Done' }, select: { id: true } });
     const doneColumnIds = doneColumns.map(c => c.id);
 
-    // Get project members
-    const members = await prisma.projectMember.findMany({
-      where: { projectId },
+    // Retrieve workspace members that are OWNER/SUPER_ADMIN or have WorkspaceMemberProject link
+    const members = await prisma.workspaceMember.findMany({
+      where: {
+        workspaceId: (await prisma.project.findUnique({ where: { id: projectId }, select: { workspaceId: true } }))?.workspaceId || '',
+        OR: [
+          { role: { in: ['OWNER', 'SUPER_ADMIN'] } },
+          { allowedProjects: { some: { projectId } } }
+        ]
+      },
       include: { user: { select: { id: true, firstName: true, lastName: true } } },
     });
 

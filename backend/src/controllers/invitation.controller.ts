@@ -7,7 +7,7 @@ import { emitToUser } from '../services/websocket.service';
 
 export async function createInvitation(req: AuthenticatedRequest, res: Response) {
   const userId = req.user?.id;
-  const { workspaceId, email, role } = req.body;
+  const { workspaceId, email, role, allowedProjectIds } = req.body;
 
   if (!workspaceId || !email || !role) {
     return sendError(res, 400, 'Workspace ID, email, and role are required');
@@ -52,16 +52,29 @@ export async function createInvitation(req: AuthenticatedRequest, res: Response)
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const invitation = await prisma.workspaceInvitation.create({
-      data: {
-        workspaceId,
-        invitedEmail: email,
-        invitedBy: userId!,
-        role,
-        token,
-        expiresAt
-      },
-      include: { workspace: true }
+    const invitation = await prisma.$transaction(async (tx) => {
+      const invite = await tx.workspaceInvitation.create({
+        data: {
+          workspaceId,
+          invitedEmail: email,
+          invitedBy: userId!,
+          role,
+          token,
+          expiresAt
+        },
+        include: { workspace: true }
+      });
+
+      if (allowedProjectIds && Array.isArray(allowedProjectIds) && ['ADMIN', 'MEMBER', 'VIEWER'].includes(role)) {
+        await tx.workspaceInvitationProject.createMany({
+          data: allowedProjectIds.map((pid: string) => ({
+            invitationId: invite.id,
+            projectId: pid
+          }))
+        });
+      }
+
+      return invite;
     });
 
     // 5. Send notification if user exists
@@ -132,13 +145,27 @@ export async function acceptInvitation(req: AuthenticatedRequest, res: Response)
       });
 
       // 2. Add to workspace membership
-      await tx.workspaceMember.create({
+      const wsMember = await tx.workspaceMember.create({
         data: {
           workspaceId: invite.workspaceId,
           userId: userId!,
           role: invite.role
         }
       });
+
+      // 3. Copy allowed projects from invitation projects to workspace member projects
+      const invitationProjects = await tx.workspaceInvitationProject.findMany({
+        where: { invitationId: id }
+      });
+
+      if (invitationProjects.length > 0) {
+        await tx.workspaceMemberProject.createMany({
+          data: invitationProjects.map((ip) => ({
+            workspaceMemberId: wsMember.id,
+            projectId: ip.projectId
+          }))
+        });
+      }
 
       return updatedInvite;
     });

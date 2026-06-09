@@ -102,6 +102,11 @@ export async function getWorkspaceMembers(req: AuthenticatedRequest, res: Respon
             avatarUrl: true,
           },
         },
+        allowedProjects: {
+          select: {
+            projectId: true
+          }
+        }
       },
     });
 
@@ -112,6 +117,7 @@ export async function getWorkspaceMembers(req: AuthenticatedRequest, res: Respon
       lastName: m.user.lastName,
       avatarUrl: m.user.avatarUrl,
       role: m.role,
+      allowedProjectIds: m.allowedProjects.map(ap => ap.projectId)
     }));
 
     return sendSuccess(res, 'Members loaded', formattedMembers);
@@ -121,10 +127,84 @@ export async function getWorkspaceMembers(req: AuthenticatedRequest, res: Respon
   }
 }
 
+export async function updateWorkspaceMember(req: AuthenticatedRequest, res: Response) {
+  const userId = req.user?.id;
+  const { workspaceId, userId: targetUserId } = req.params;
+  const { role, allowedProjectIds } = req.body;
+
+  if (!role) {
+    return sendError(res, 400, 'Role is required');
+  }
+
+  try {
+    // 1. Verify current user is Admin or Owner of the workspace
+    const currentMember = await prisma.workspaceMember.findUnique({
+      where: {
+        workspaceId_userId: { workspaceId, userId: userId! },
+      },
+    });
+
+    if (!currentMember || (currentMember.role !== 'ADMIN' && currentMember.role !== 'OWNER')) {
+      return sendError(res, 403, 'Only workspace administrators or owners can update member roles');
+    }
+
+    // 2. Find target member
+    const targetMember = await prisma.workspaceMember.findUnique({
+      where: {
+        workspaceId_userId: { workspaceId, userId: targetUserId }
+      }
+    });
+
+    if (!targetMember) {
+      return sendError(res, 404, 'Workspace member not found');
+    }
+
+    // 3. Owners cannot be modified/demoted directly (use transfer ownership)
+    if (targetMember.role === 'OWNER' && role !== 'OWNER') {
+      return sendError(res, 400, 'Cannot modify workspace owner role. Transfer ownership instead.');
+    }
+
+    // 4. Super admin/Admin cannot promote to owner directly
+    if (role === 'OWNER' && targetMember.role !== 'OWNER') {
+      return sendError(res, 400, 'Cannot promote to owner directly. Use transfer ownership.');
+    }
+
+    // 5. Update role and projects in transaction
+    const updated = await prisma.$transaction(async (tx) => {
+      const m = await tx.workspaceMember.update({
+        where: { id: targetMember.id },
+        data: { role }
+      });
+
+      // Clear existing allowed projects
+      await tx.workspaceMemberProject.deleteMany({
+        where: { workspaceMemberId: targetMember.id }
+      });
+
+      // Insert new allowed projects if role is restricted (ADMIN, MEMBER, VIEWER) and allowedProjectIds is present
+      if (allowedProjectIds && Array.isArray(allowedProjectIds) && ['ADMIN', 'MEMBER', 'VIEWER'].includes(role)) {
+        await tx.workspaceMemberProject.createMany({
+          data: allowedProjectIds.map((pid: string) => ({
+            workspaceMemberId: targetMember.id,
+            projectId: pid
+          }))
+        });
+      }
+
+      return m;
+    });
+
+    return sendSuccess(res, 'Workspace member updated successfully', updated);
+  } catch (error: any) {
+    console.error('Update workspace member error:', error);
+    return sendError(res, 500, 'Failed to update workspace member');
+  }
+}
+
 export async function addWorkspaceMember(req: AuthenticatedRequest, res: Response) {
   const userId = req.user?.id;
   const { workspaceId } = req.params;
-  const { email, role } = req.body;
+  const { email, role, allowedProjectIds } = req.body;
 
   if (!email || !role) {
     return sendError(res, 400, 'Email and role are required');
@@ -178,16 +258,29 @@ export async function addWorkspaceMember(req: AuthenticatedRequest, res: Respons
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const invitation = await prisma.workspaceInvitation.create({
-      data: {
-        workspaceId,
-        invitedEmail: email,
-        invitedBy: userId!,
-        role,
-        token,
-        expiresAt
-      },
-      include: { workspace: true }
+    const invitation = await prisma.$transaction(async (tx) => {
+      const invite = await tx.workspaceInvitation.create({
+        data: {
+          workspaceId,
+          invitedEmail: email,
+          invitedBy: userId!,
+          role,
+          token,
+          expiresAt
+        },
+        include: { workspace: true }
+      });
+
+      if (allowedProjectIds && Array.isArray(allowedProjectIds) && ['ADMIN', 'MEMBER', 'VIEWER'].includes(role)) {
+        await tx.workspaceInvitationProject.createMany({
+          data: allowedProjectIds.map((pid: string) => ({
+            invitationId: invite.id,
+            projectId: pid
+          }))
+        });
+      }
+
+      return invite;
     });
 
     // 6. Create in-app Notification for the recipient user

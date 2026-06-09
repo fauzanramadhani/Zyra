@@ -31,12 +31,32 @@ export function requireWorkspaceRole(allowedRoles: string[]) {
 export function requireProjectRole(allowedRoles: string[]) {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const userId = req.user?.id;
-    const projectId = req.params.projectId || req.body.projectId || req.query.projectId as string;
+    let projectId = req.params.projectId || req.body.projectId || req.query.projectId as string;
 
     if (!userId) return sendError(res, 401, 'Unauthorized');
-    if (!projectId) return sendError(res, 400, 'Project ID is required');
 
     try {
+      // If projectId is not directly present, try resolving it from parameters
+      if (!projectId) {
+        const issueId = req.params.issueId || req.body.issueId;
+        const sprintId = req.params.sprintId || req.body.sprintId;
+        
+        if (issueId) {
+          const issue = await prisma.issue.findUnique({
+            where: { id: issueId },
+            select: { projectId: true }
+          });
+          if (issue) projectId = issue.projectId;
+        } else if (sprintId) {
+          const sprint = await prisma.sprint.findUnique({
+            where: { id: sprintId },
+            select: { projectId: true }
+          });
+          if (sprint) projectId = sprint.projectId;
+        }
+      }
+
+      if (!projectId) return sendError(res, 400, 'Project ID is required');
       // 1. Get project workspace
       const project = await prisma.project.findUnique({
         where: { id: projectId }
@@ -44,21 +64,36 @@ export function requireProjectRole(allowedRoles: string[]) {
 
       if (!project) return sendError(res, 404, 'Project not found');
 
-      // 2. Check if user is Workspace OWNER or ADMIN (they bypass project role restrictions)
+      // 2. Get Workspace Member details
       const wsMember = await prisma.workspaceMember.findUnique({
         where: { workspaceId_userId: { workspaceId: project.workspaceId, userId } }
       });
 
-      if (wsMember && (wsMember.role === 'OWNER' || wsMember.role === 'ADMIN')) {
+      if (!wsMember) {
+        return sendError(res, 403, 'You are not a member of this workspace');
+      }
+
+      // 3. OWNER and SUPER_ADMIN have full access to all projects in the workspace
+      if (wsMember.role === 'OWNER' || wsMember.role === 'SUPER_ADMIN') {
         return next();
       }
 
-      // 3. Check project specific membership
-      const member = await prisma.projectMember.findUnique({
-        where: { projectId_userId: { projectId, userId } }
+      // 4. For ADMIN, MEMBER, and VIEWER: check project-specific access link
+      const hasProjectAccess = await prisma.workspaceMemberProject.findUnique({
+        where: {
+          workspaceMemberId_projectId: {
+            workspaceMemberId: wsMember.id,
+            projectId: project.id
+          }
+        }
       });
 
-      if (!member || !allowedRoles.includes(member.role)) {
+      if (!hasProjectAccess) {
+        return sendError(res, 403, 'You do not have access to this project');
+      }
+
+      // 5. Enforce role permission match
+      if (!allowedRoles.includes(wsMember.role)) {
         return sendError(res, 403, 'You do not have permission to perform this action in this project');
       }
 
@@ -85,28 +120,49 @@ export async function canEditIssue(req: AuthenticatedRequest, res: Response, nex
 
     if (!issue) return sendError(res, 404, 'Issue not found');
 
-    // 1. Check if Workspace OWNER/ADMIN
     const wsMember = await prisma.workspaceMember.findUnique({
       where: { workspaceId_userId: { workspaceId: issue.project.workspaceId, userId } }
     });
-    if (wsMember && (wsMember.role === 'OWNER' || wsMember.role === 'ADMIN')) {
+    if (!wsMember) return sendError(res, 403, 'You are not a member of this workspace');
+
+    // 1. Check if Workspace OWNER/SUPER_ADMIN
+    if (wsMember.role === 'OWNER' || wsMember.role === 'SUPER_ADMIN') {
       return next();
     }
 
-    // 2. Check if Project ADMIN
-    const projMember = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId: issue.projectId, userId } }
+    // 2. For ADMIN, MEMBER, VIEWER: must have project access
+    const hasProjectAccess = await prisma.workspaceMemberProject.findUnique({
+      where: {
+        workspaceMemberId_projectId: {
+          workspaceMemberId: wsMember.id,
+          projectId: issue.projectId
+        }
+      }
     });
-    if (projMember && projMember.role === 'ADMIN') {
+
+    if (!hasProjectAccess) {
+      return sendError(res, 403, 'You do not have access to this project');
+    }
+
+    // VIEWER can never edit issues
+    if (wsMember.role === 'VIEWER') {
+      return sendError(res, 403, 'Viewers have read-only access');
+    }
+
+    // ADMIN can edit anything in their allowed projects
+    if (wsMember.role === 'ADMIN') {
       return next();
     }
 
-    // 3. Check if assignee or reporter
-    if (issue.assigneeId === userId || issue.reporterId === userId) {
-      return next();
+    // MEMBER can edit if they are assignee or reporter
+    if (wsMember.role === 'MEMBER') {
+      if (issue.assigneeId === userId || issue.reporterId === userId) {
+        return next();
+      }
+      return sendError(res, 403, 'Only the assignee, reporter, or project admin can edit this issue');
     }
 
-    return sendError(res, 403, 'Only the assignee, reporter, or project admin can edit this issue');
+    return sendError(res, 403, 'Unauthorized');
   } catch (error) {
     console.error('canEditIssue error:', error);
     return sendError(res, 500, 'Internal permission check error');
@@ -133,19 +189,28 @@ export async function canModifyComment(req: AuthenticatedRequest, res: Response,
       return next();
     }
 
-    // 2. Is workspace OWNER/ADMIN or project ADMIN
+    // 2. Is workspace OWNER/SUPER_ADMIN
     const wsMember = await prisma.workspaceMember.findUnique({
       where: { workspaceId_userId: { workspaceId: comment.issue.project.workspaceId, userId } }
     });
-    if (wsMember && (wsMember.role === 'OWNER' || wsMember.role === 'ADMIN')) {
+    if (wsMember && (wsMember.role === 'OWNER' || wsMember.role === 'SUPER_ADMIN')) {
       return next();
     }
 
-    const projMember = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId: comment.issue.projectId, userId } }
-    });
-    if (projMember && projMember.role === 'ADMIN') {
-      return next();
+    // 3. For ADMIN, MEMBER, VIEWER: check project access and if they are ADMIN
+    if (wsMember) {
+      const hasProjectAccess = await prisma.workspaceMemberProject.findUnique({
+        where: {
+          workspaceMemberId_projectId: {
+            workspaceMemberId: wsMember.id,
+            projectId: comment.issue.projectId
+          }
+        }
+      });
+
+      if (hasProjectAccess && wsMember.role === 'ADMIN') {
+        return next();
+      }
     }
 
     return sendError(res, 403, 'You are not authorized to modify this comment');

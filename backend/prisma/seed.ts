@@ -89,12 +89,24 @@ async function main() {
     include: { states: true }
   });
 
-  await prisma.projectMember.createMany({
-    data: [
-      { projectId: project.id, userId: admin.id, role: 'ADMIN' },
-      { projectId: project.id, userId: developer.id, role: 'MEMBER' },
-    ],
+  // Assign workspace member project access for ADMIN / MEMBER roles ( Alex & Devin )
+  const adminWsMember = await prisma.workspaceMember.findFirst({
+    where: { workspaceId: workspace.id, userId: admin.id }
   });
+  const developerWsMember = await prisma.workspaceMember.findFirst({
+    where: { workspaceId: workspace.id, userId: developer.id }
+  });
+
+  if (adminWsMember) {
+    await prisma.workspaceMemberProject.create({
+      data: { workspaceMemberId: adminWsMember.id, projectId: project.id }
+    });
+  }
+  if (developerWsMember) {
+    await prisma.workspaceMemberProject.create({
+      data: { workspaceMemberId: developerWsMember.id, projectId: project.id }
+    });
+  }
 
   console.log('Project seeded successfully');
 

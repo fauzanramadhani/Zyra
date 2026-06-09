@@ -174,7 +174,7 @@ export const useProjectStore = defineStore('project', {
         console.error('Move failed, rolling back optimistic update...', error);
         this.rollbackColumns();
         this._pendingMoveIds.delete(messageId);
-        return;
+        throw error;
       }
     },
 
@@ -195,8 +195,10 @@ export const useProjectStore = defineStore('project', {
         if (response.data.success) {
           this.sprints.unshift(response.data.data);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Create sprint failed:', error);
+        const msg = error.response?.data?.message || 'Failed to create sprint';
+        throw new Error(msg);
       }
     },
 

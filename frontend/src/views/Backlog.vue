@@ -362,8 +362,10 @@ export default defineComponent({
         const allIssues = [...backlogIssues.value, ...sprints.value.flatMap(s => s.issues || [])];
         const issue = allIssues.find(i => i.id === issueId);
         if (issue) issue.sprintId = sprintId;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to move issue to sprint:', err);
+        const errMsg = err.response?.data?.message || 'Failed to move issue to sprint';
+        toast.error(errMsg);
         await loadData();
       }
     };
@@ -377,8 +379,10 @@ export default defineComponent({
         const allIssues = [...backlogIssues.value, ...sprints.value.flatMap(s => s.issues || [])];
         const issue = allIssues.find(i => i.id === issueId);
         if (issue) issue.sprintId = null;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to move issue to backlog:', err);
+        const errMsg = err.response?.data?.message || 'Failed to move issue to backlog';
+        toast.error(errMsg);
         await loadData();
       }
     };
@@ -391,7 +395,7 @@ export default defineComponent({
             await api.post(`/sprints/${sprint.id}/start`);
             await loadData();
           } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to start sprint');
+            toast.error(err.response?.data?.message || 'Failed to start sprint');
           }
           break;
         case 'complete':
@@ -403,7 +407,7 @@ export default defineComponent({
             await api.post(`/sprints/${sprint.id}/reopen`);
             await loadData();
           } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to reopen sprint');
+            toast.error(err.response?.data?.message || 'Failed to reopen sprint');
           }
           break;
         case 'edit':
@@ -422,7 +426,7 @@ export default defineComponent({
             await api.post(`/sprints/${sprint.id}/archive`);
             await loadData();
           } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to archive sprint');
+            toast.error(err.response?.data?.message || 'Failed to archive sprint');
           }
           break;
         case 'restore':
@@ -430,7 +434,7 @@ export default defineComponent({
             await api.post(`/sprints/${sprint.id}/restore`);
             await loadData();
           } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to restore sprint');
+            toast.error(err.response?.data?.message || 'Failed to restore sprint');
           }
           break;
         case 'delete':
@@ -439,7 +443,7 @@ export default defineComponent({
             await api.delete(`/sprints/${sprint.id}`);
             await loadData();
           } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to delete sprint');
+            toast.error(err.response?.data?.message || 'Failed to delete sprint');
           }
           break;
       }
@@ -459,7 +463,7 @@ export default defineComponent({
         }
         await loadData();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Failed to save sprint');
+        toast.error(err.response?.data?.message || 'Failed to save sprint');
       }
     };
 
@@ -470,7 +474,7 @@ export default defineComponent({
         completingSprint.value = null;
         await loadData();
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Failed to complete sprint');
+        toast.error(err.response?.data?.message || 'Failed to complete sprint');
       }
     };
 

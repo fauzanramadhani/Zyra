@@ -4,7 +4,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Project Settings</h1>
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure project identifiers, visibility settings, members, and delete actions.</p>
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure project identifiers, visibility settings, and delete actions.</p>
         </div>
       </div>
     </div>
@@ -61,52 +61,6 @@
         </div>
       </div>
 
-      <!-- Members Management -->
-      <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-slate-200 dark:border-zyra-gray-darkBorder shadow-sm overflow-hidden">
-        <div class="border-b border-slate-200 dark:border-zyra-gray-darkBorder bg-slate-50/50 dark:bg-slate-800/50 px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 class="text-lg font-bold text-slate-800 dark:text-white">Project Members</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Manage memberships and roles specific to this software project.</p>
-          </div>
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-            <select v-model="addMemberForm.email" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
-              <option value="">Select workspace user...</option>
-              <option v-for="u in workspaceUsers" :key="u.id" :value="u.email">{{ u.firstName }} {{ u.lastName }} ({{ u.email }})</option>
-            </select>
-            <select v-model="addMemberForm.role" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500">
-              <option value="MEMBER">Member</option>
-              <option value="ADMIN">Admin</option>
-              <option value="VIEWER">Viewer</option>
-            </select>
-            <button @click="addProjectMember" :disabled="!addMemberForm.email || addingMember" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition shadow-sm disabled:opacity-50">
-              Add
-            </button>
-          </div>
-        </div>
-
-        <div class="p-6">
-          <div class="divide-y divide-slate-150 dark:divide-slate-700 border border-slate-200 dark:border-zyra-gray-darkBorder rounded-xl overflow-hidden bg-slate-50/20 dark:bg-slate-800/30">
-            <div v-for="m in members" :key="m.id" class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-              <div class="flex items-center gap-3">
-                <img :src="m.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + m.firstName" class="w-8 h-8 rounded-full shadow-sm" />
-                <div>
-                  <p class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ m.firstName }} {{ m.lastName }}</p>
-                  <p class="text-xs text-slate-500 dark:text-slate-400">{{ m.email }}</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-xs font-semibold px-2 py-0.5 border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">
-                  {{ m.role }}
-                </span>
-                <button v-if="m.id !== currentUserId" @click="removeMember(m.id)" class="text-xs font-bold text-red-500 hover:text-red-600 hover:underline">
-                  Remove
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Danger Zone -->
       <div class="bg-white dark:bg-zyra-gray-darkCard rounded-xl border border-red-200 dark:border-red-900 shadow-sm overflow-hidden">
         <div class="p-6 border-b border-red-100 dark:border-red-900 bg-red-50/30 dark:bg-red-950/30">
@@ -148,7 +102,6 @@
 import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '../store/project';
-import { useAuthStore } from '../store/auth';
 import { useToastStore } from '../store/toast';
 import AppConfirmDialog from '../components/ui/AppConfirmDialog.vue';
 import api from '../services/api';
@@ -160,15 +113,10 @@ export default defineComponent({
     const route = useRoute();
     const router = useRouter();
     const projectStore = useProjectStore();
-    const authStore = useAuthStore();
     const toast = useToastStore();
 
     const projectId = computed(() => route.params.projectId as string);
     const saving = ref(false);
-    const addingMember = ref(false);
-    const members = ref<any[]>([]);
-    const workspaceUsers = ref<any[]>([]);
-    const currentUserId = computed(() => authStore.user?.id);
 
     const confirmDialog = ref({ show: false, title: '', message: '', action: () => {} });
 
@@ -189,12 +137,7 @@ export default defineComponent({
       icon: ''
     });
 
-    const addMemberForm = ref({
-      email: '',
-      role: 'MEMBER'
-    });
-
-    const fetchProjectAndWorkspaceMembers = async () => {
+    const fetchProjectDetails = async () => {
       try {
         const detailsRes = await api.get(`/projects/${projectId.value}`);
         if (detailsRes.data.success) {
@@ -206,30 +149,14 @@ export default defineComponent({
             visibility: p.visibility || 'PUBLIC',
             icon: p.icon || ''
           };
-          members.value = p.members.map((m: any) => ({
-            id: m.user.id,
-            email: m.user.email,
-            firstName: m.user.firstName,
-            lastName: m.user.lastName,
-            avatarUrl: m.user.avatarUrl,
-            role: m.role
-          }));
-        }
-
-        // Fetch workspace members to allow adding
-        if (authStore.currentWorkspace) {
-          const wsRes = await api.get(`/workspaces/${authStore.currentWorkspace.id}/members`);
-          if (wsRes.data.success) {
-            workspaceUsers.value = wsRes.data.data.filter((u: any) => !members.value.some((m) => m.id === u.id));
-          }
         }
       } catch (err) {
-        console.error('Failed to load project configuration details:', err);
+        console.error('Failed to load project details:', err);
       }
     };
 
     onMounted(() => {
-      fetchProjectAndWorkspaceMembers();
+      fetchProjectDetails();
     });
 
     const saveProject = async () => {
@@ -245,36 +172,6 @@ export default defineComponent({
       } finally {
         saving.value = false;
       }
-    };
-
-    const addProjectMember = async () => {
-      addingMember.value = true;
-      try {
-        const res = await api.post(`/projects/${projectId.value}/members`, addMemberForm.value);
-        if (res.data.success) {
-          toast.success('Member added to project successfully!');
-          addMemberForm.value.email = '';
-          await fetchProjectAndWorkspaceMembers();
-        }
-      } catch (err: any) {
-        toast.error(err.response?.data?.message || 'Failed to add project member');
-      } finally {
-        addingMember.value = false;
-      }
-    };
-
-    const removeMember = async (targetUserId: string) => {
-      showConfirm('Remove Member', 'Are you sure you want to remove this member from the project?', async () => {
-        try {
-          const res = await api.delete(`/projects/${projectId.value}/members/${targetUserId}`);
-          if (res.data.success) {
-            toast.success('Member removed successfully.');
-            await fetchProjectAndWorkspaceMembers();
-          }
-        } catch (err: any) {
-          toast.error(err.response?.data?.message || 'Failed to remove project member');
-        }
-      });
     };
 
     const archiveProject = async () => {
@@ -307,15 +204,8 @@ export default defineComponent({
 
     return {
       projectForm,
-      addMemberForm,
       saving,
-      addingMember,
-      members,
-      workspaceUsers,
-      currentUserId,
       saveProject,
-      addProjectMember,
-      removeMember,
       archiveProject,
       deleteProject,
       confirmDialog,

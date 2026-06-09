@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
+import { requireWorkspaceRole, requireProjectRole, canEditIssue, canModifyComment } from '../middleware/crud-permission.middleware';
 
 // Controller imports
 import * as authController from '../controllers/auth.controller';
@@ -59,15 +60,14 @@ router.patch('/workspaces/:workspaceId', authenticateToken, upload.single('avata
 router.post('/workspaces/:workspaceId/transfer-ownership', authenticateToken, workspaceController.transferOwnership);
 router.get('/workspaces/:workspaceId/members', authenticateToken, workspaceController.getWorkspaceMembers);
 router.post('/workspaces/:workspaceId/members', authenticateToken, workspaceController.addWorkspaceMember);
+router.patch('/workspaces/:workspaceId/members/:userId', authenticateToken, workspaceController.updateWorkspaceMember);
 router.delete('/workspaces/:workspaceId/members/:userId', authenticateToken, workspaceController.removeWorkspaceMember);
 
 // --- Project Routes ---
 router.get('/projects', authenticateToken, projectController.listProjects);
-router.post('/projects', authenticateToken, projectController.createProject);
+router.post('/projects', authenticateToken, requireWorkspaceRole(['OWNER', 'SUPER_ADMIN', 'ADMIN']), projectController.createProject);
 router.get('/projects/:projectId', authenticateToken, projectController.getProject);
 router.patch('/projects/:projectId', authenticateToken, projectController.updateProject);
-router.post('/projects/:projectId/members', authenticateToken, projectController.addProjectMember);
-router.delete('/projects/:projectId/members/:userId', authenticateToken, projectController.removeProjectMember);
 router.delete('/projects/:projectId', authenticateToken, projectController.deleteProject);
 
 // --- Board & Column Routes ---
@@ -78,44 +78,45 @@ router.put('/columns/:columnId', authenticateToken, boardController.updateColumn
 router.delete('/columns/:columnId', authenticateToken, boardController.deleteColumn);
 
 // --- Sprint Routes ---
-router.get('/projects/:projectId/sprints', authenticateToken, sprintController.listSprints);
-router.post('/projects/:projectId/sprints', authenticateToken, sprintController.createSprint);
-router.post('/projects/:projectId/sprints/reorder', authenticateToken, sprintController.reorderSprints);
-router.patch('/sprints/:sprintId', authenticateToken, sprintController.updateSprint);
-router.post('/sprints/:sprintId/start', authenticateToken, sprintController.startSprint);
-router.post('/sprints/:sprintId/complete', authenticateToken, sprintController.completeSprint);
-router.post('/sprints/:sprintId/reopen', authenticateToken, sprintController.reopenSprint);
-router.post('/sprints/:sprintId/archive', authenticateToken, sprintController.archiveSprint);
-router.post('/sprints/:sprintId/restore', authenticateToken, sprintController.restoreSprint);
-router.get('/sprints/:sprintId/stats', authenticateToken, sprintController.getSprintStats);
-router.delete('/sprints/:sprintId', authenticateToken, sprintController.deleteSprint);
+router.get('/projects/:projectId/sprints', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER', 'VIEWER']), sprintController.listSprints);
+router.post('/projects/:projectId/sprints', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.createSprint);
+router.post('/projects/:projectId/sprints/reorder', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.reorderSprints);
+router.patch('/sprints/:sprintId', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.updateSprint);
+router.post('/sprints/:sprintId/start', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.startSprint);
+router.post('/sprints/:sprintId/complete', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.completeSprint);
+router.post('/sprints/:sprintId/reopen', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.reopenSprint);
+router.post('/sprints/:sprintId/archive', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.archiveSprint);
+router.post('/sprints/:sprintId/restore', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.restoreSprint);
+router.get('/sprints/:sprintId/stats', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER', 'VIEWER']), sprintController.getSprintStats);
+router.delete('/sprints/:sprintId', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), sprintController.deleteSprint);
 
 // --- Issue Routes ---
-router.get('/projects/:projectId/issues', authenticateToken, issueController.listIssues);
-router.post('/projects/:projectId/issues', authenticateToken, issueController.createIssue);
-router.get('/issues/:issueId', authenticateToken, issueController.getIssue);
-router.patch('/issues/:issueId', authenticateToken, issueController.updateIssue);
-router.put('/issues/:issueId/move', authenticateToken, issueController.moveIssue);
-router.delete('/issues/:issueId', authenticateToken, issueController.deleteIssue);
+router.get('/projects/:projectId/issues', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER', 'VIEWER']), issueController.listIssues);
+router.post('/projects/:projectId/issues', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), issueController.createIssue);
+router.get('/issues/:issueId', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER', 'VIEWER']), issueController.getIssue);
+router.patch('/issues/:issueId', authenticateToken, canEditIssue, issueController.updateIssue);
+router.put('/issues/:issueId/move', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), issueController.moveIssue);
+router.delete('/issues/:issueId', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN']), issueController.deleteIssue);
 
 // --- Issue Link Routes ---
-router.get('/issues/:issueId/links', authenticateToken, issueLinkController.getIssueLinks);
-router.post('/issues/:issueId/links', authenticateToken, issueLinkController.createIssueLink);
-router.delete('/issues/:issueId/links/:linkId', authenticateToken, issueLinkController.deleteIssueLink);
+router.get('/issues/:issueId/links', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER', 'VIEWER']), issueLinkController.getIssueLinks);
+router.post('/issues/:issueId/links', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), issueLinkController.createIssueLink);
+router.delete('/issues/:issueId/links/:linkId', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), issueLinkController.deleteIssueLink);
 
 // --- Comment Routes ---
-router.post('/issues/:issueId/comments', authenticateToken, commentController.addComment);
-router.put('/comments/:commentId', authenticateToken, commentController.updateComment);
-router.delete('/comments/:commentId', authenticateToken, commentController.deleteComment);
+router.post('/issues/:issueId/comments', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), commentController.addComment);
+router.put('/comments/:commentId', authenticateToken, canModifyComment, commentController.updateComment);
+router.delete('/comments/:commentId', authenticateToken, canModifyComment, commentController.deleteComment);
 
 // --- Attachment Routes ---
 router.post(
   '/issues/:issueId/attachments',
   authenticateToken,
+  requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']),
   upload.single('file'),
   attachmentController.addAttachment
 );
-router.delete('/attachments/:attachmentId', authenticateToken, attachmentController.deleteAttachment);
+router.delete('/attachments/:attachmentId', authenticateToken, requireProjectRole(['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MEMBER']), attachmentController.deleteAttachment);
 
 // --- Workspace Invitation Routes ---
 router.post('/invitations', authenticateToken, invitationController.createInvitation);

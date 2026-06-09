@@ -104,6 +104,7 @@
       <h3 class="text-lg font-semibold text-slate-600 dark:text-slate-300 mb-2">No timesheet for this week</h3>
       <button @click="createTimesheet" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition">Create Timesheet</button>
     </div>
+    </div>
   </div>
 </template>
 

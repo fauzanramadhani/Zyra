@@ -257,6 +257,7 @@ import AppDialog from '../components/ui/AppDialog.vue';
 import { UserAvatar } from '../components/ui';
 import { Search as SearchIcon } from 'lucide-vue-next';
 import { VueDraggable } from 'vue-draggable-plus';
+import { useToastStore } from '../store/toast';
 
 export default defineComponent({
   name: 'ProjectBoard',
@@ -264,6 +265,7 @@ export default defineComponent({
   setup() {
     const route = useRoute();
     const projectStore = useProjectStore();
+    const toast = useToastStore();
 
     const searchQuery = ref('');
     const filterType = ref('');
@@ -425,13 +427,19 @@ export default defineComponent({
       const afterIssue  = newIndex > 0                  ? issues[newIndex - 1] : null;
       const beforeIssue = newIndex < issues.length - 1  ? issues[newIndex + 1] : null;
 
-      await projectStore.moveIssueStatus(
-        issueId,
-        fromColId,
-        targetCol.id,
-        beforeIssue?.id ?? null,
-        afterIssue?.id  ?? null,
-      );
+      try {
+        await projectStore.moveIssueStatus(
+          issueId,
+          fromColId,
+          targetCol.id,
+          beforeIssue?.id ?? null,
+          afterIssue?.id  ?? null,
+        );
+      } catch (err: any) {
+        console.error('Failed to move issue:', err);
+        const errMsg = err.response?.data?.message || 'Failed to move issue';
+        toast.error(errMsg);
+      }
 
       draggingIssueId.value = null;
       draggingFromColId.value = null;
@@ -453,13 +461,19 @@ export default defineComponent({
       const afterIssue  = newIndex > 0                  ? issues[newIndex - 1] : null;
       const beforeIssue = newIndex < issues.length - 1  ? issues[newIndex + 1] : null;
 
-      await projectStore.moveIssueStatus(
-        issueId,
-        col.id,
-        col.id,
-        beforeIssue?.id ?? null,
-        afterIssue?.id  ?? null,
-      );
+      try {
+        await projectStore.moveIssueStatus(
+          issueId,
+          col.id,
+          col.id,
+          beforeIssue?.id ?? null,
+          afterIssue?.id  ?? null,
+        );
+      } catch (err: any) {
+        console.error('Failed to reorder issue:', err);
+        const errMsg = err.response?.data?.message || 'Failed to reorder issue';
+        toast.error(errMsg);
+      }
 
       draggingIssueId.value = null;
       draggingFromColId.value = null;
@@ -484,8 +498,10 @@ export default defineComponent({
         createType.value = 'TASK';
         createPriority.value = 'MEDIUM';
         await loadBoard();
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to create issue:', err);
+        const errMsg = err.response?.data?.message || 'Failed to create issue';
+        toast.error(errMsg);
       }
     };
 

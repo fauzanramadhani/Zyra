@@ -75,18 +75,31 @@
             <div class="space-y-4">
               <h3 class="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Active Members</h3>
               <div class="divide-y divide-slate-150 dark:divide-slate-700 border border-slate-200 dark:border-zyra-gray-darkBorder rounded-xl overflow-hidden bg-slate-50/20 dark:bg-slate-800/30">
-                <div v-for="m in members" :key="m.id" class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                <div v-for="m in members" :key="m.id" class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
                   <div class="flex items-center gap-3">
                     <img :src="m.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + m.firstName" class="w-9 h-9 rounded-full shadow-sm" />
                     <div>
                       <p class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ m.firstName }} {{ m.lastName }}</p>
                       <p class="text-xs text-slate-500 dark:text-slate-400">{{ m.email }}</p>
+                      <div v-if="['ADMIN', 'MEMBER', 'VIEWER'].includes(m.role)" class="mt-1 flex flex-wrap gap-1 items-center">
+                        <span class="text-[10px] text-slate-400">Projects:</span>
+                        <span v-if="m.allowedProjectIds && m.allowedProjectIds.length > 0" v-for="pid in m.allowedProjectIds" :key="pid" class="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300">
+                          {{ getProjectName(pid) }}
+                        </span>
+                        <span v-else class="text-[10px] text-red-500 font-medium">None (No access)</span>
+                      </div>
+                      <div v-else class="mt-1">
+                        <span class="text-[10px] text-green-600 dark:text-green-400 font-semibold bg-green-50 dark:bg-green-950/30 px-1.5 py-0.5 rounded">All Projects</span>
+                      </div>
                     </div>
                   </div>
-                  <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2">
                     <span class="text-xs font-semibold px-2.5 py-1 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-full uppercase">
                       {{ m.role }}
                     </span>
+                    <button v-if="canManage(m)" @click="openEditModal(m)" class="px-2.5 py-1 text-xs font-bold text-orange-500 hover:bg-orange-50 dark:hover:bg-slate-800 border border-orange-200 dark:border-slate-600 rounded transition">
+                      Edit
+                    </button>
                     <button v-if="canManage(m)" @click="removeMember(m.id)" class="text-xs font-bold text-red-500 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition">
                       Remove
                     </button>
@@ -178,6 +191,21 @@
             <option value="VIEWER">Viewer (Read-only access)</option>
           </select>
         </div>
+
+        <!-- Project Access Scope Multi-Select -->
+        <div v-if="['ADMIN', 'MEMBER', 'VIEWER'].includes(inviteForm.role)" class="space-y-2">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Allowed Projects</label>
+          <p class="text-xs text-slate-500 mb-2">Select which projects this member is allowed to access.</p>
+          <div class="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg p-2 space-y-2 bg-slate-50/50 dark:bg-slate-800/50">
+            <div v-for="p in projects" :key="p.id" class="flex items-center gap-2">
+              <input type="checkbox" :id="'invite-proj-' + p.id" :value="p.id" v-model="inviteForm.allowedProjectIds" class="rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+              <label :for="'invite-proj-' + p.id" class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                {{ p.name }} <span class="text-xs text-slate-400">({{ p.key }})</span>
+              </label>
+            </div>
+            <div v-if="projects.length === 0" class="text-xs text-slate-500 text-center py-2">No projects found. Create a project first.</div>
+          </div>
+        </div>
       </form>
       <template #footer="{ close }">
         <button type="button" @click="close" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
@@ -185,6 +213,52 @@
         </button>
         <button @click="sendInvite" :disabled="inviting" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition shadow-sm">
           {{ inviting ? 'Sending...' : 'Send Invitation' }}
+        </button>
+      </template>
+    </AppDialog>
+
+    <!-- Edit Member Modal -->
+    <AppDialog v-model="showEditModal" title="Edit Workspace Member Access" size="md">
+      <div v-if="editForm" class="space-y-4">
+        <div class="flex items-center gap-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+          <img :src="editForm.avatarUrl || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + editForm.firstName" class="w-10 h-10 rounded-full" />
+          <div>
+            <p class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ editForm.firstName }} {{ editForm.lastName }}</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">{{ editForm.email }}</p>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Workspace Role</label>
+          <select v-model="editForm.role" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
+            <option value="MEMBER">Member (Standard write access)</option>
+            <option value="ADMIN">Admin (Workspace settings management)</option>
+            <option value="VIEWER">Viewer (Read-only access)</option>
+            <option value="SUPER_ADMIN">Super Admin (All projects, except kicking Owner)</option>
+          </select>
+        </div>
+
+        <!-- Project Access Scope Multi-Select for Edit -->
+        <div v-if="['ADMIN', 'MEMBER', 'VIEWER'].includes(editForm.role)" class="space-y-2">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Allowed Projects</label>
+          <p class="text-xs text-slate-500 mb-2">Select which projects this member is allowed to access.</p>
+          <div class="max-h-40 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg p-2 space-y-2 bg-slate-50/50 dark:bg-slate-800/50">
+            <div v-for="p in projects" :key="p.id" class="flex items-center gap-2">
+              <input type="checkbox" :id="'edit-proj-' + p.id" :value="p.id" v-model="editForm.allowedProjectIds" class="rounded border-slate-300 text-orange-500 focus:ring-orange-500" />
+              <label :for="'edit-proj-' + p.id" class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                {{ p.name }} <span class="text-xs text-slate-400">({{ p.key }})</span>
+              </label>
+            </div>
+            <div v-if="projects.length === 0" class="text-xs text-slate-500 text-center py-2">No projects found.</div>
+          </div>
+        </div>
+      </div>
+      <template #footer="{ close }">
+        <button type="button" @click="close" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+          Cancel
+        </button>
+        <button @click="saveEditMember" :disabled="savingMember" class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 disabled:opacity-50 transition shadow-sm">
+          {{ savingMember ? 'Saving...' : 'Save Changes' }}
         </button>
       </template>
     </AppDialog>
@@ -235,11 +309,35 @@ export default defineComponent({
 
     const inviteForm = ref({
       email: '',
-      role: 'MEMBER'
+      role: 'MEMBER',
+      allowedProjectIds: [] as string[]
     });
 
     const members = ref<any[]>([]);
+    const projects = ref<any[]>([]);
     const transferTargetId = ref('');
+
+    // Editing active workspace member
+    const showEditModal = ref(false);
+    const savingMember = ref(false);
+    const editForm = ref<any>(null);
+
+    const getProjectName = (projectId: string) => {
+      const p = projects.value.find(proj => proj.id === projectId);
+      return p ? p.name : projectId;
+    };
+
+    const fetchWorkspaceProjects = async () => {
+      if (!workspace.value) return;
+      try {
+        const res = await api.get(`/projects?workspaceId=${workspace.value.id}`);
+        if (res.data.success) {
+          projects.value = res.data.data;
+        }
+      } catch (err) {
+        console.error('Failed to load workspace projects:', err);
+      }
+    };
 
     const fetchMembers = async () => {
       if (!workspace.value) return;
@@ -259,6 +357,7 @@ export default defineComponent({
         return;
       }
       fetchMembers();
+      fetchWorkspaceProjects();
       inviteStore.fetchWorkspaceInvitations(workspace.value.id);
       inviteStore.setupSocketListener();
     });
@@ -330,16 +429,55 @@ export default defineComponent({
       if (!workspace.value) return;
       inviting.value = true;
       try {
-        const success = await inviteStore.createInvitation(workspace.value.id, inviteForm.value.email, inviteForm.value.role);
+        const success = await inviteStore.createInvitation(
+          workspace.value.id,
+          inviteForm.value.email,
+          inviteForm.value.role,
+          inviteForm.value.allowedProjectIds
+        );
         if (success) {
           toast.success('Invitation sent successfully!');
           inviteForm.value.email = '';
+          inviteForm.value.allowedProjectIds = [];
           showInviteModal.value = false;
         }
       } catch (err: any) {
         toast.error(err.message || 'Failed to send invitation');
       } finally {
         inviting.value = false;
+      }
+    };
+
+    const openEditModal = (member: any) => {
+      editForm.value = {
+        id: member.id,
+        email: member.email,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        avatarUrl: member.avatarUrl,
+        role: member.role,
+        allowedProjectIds: [...(member.allowedProjectIds || [])]
+      };
+      showEditModal.value = true;
+    };
+
+    const saveEditMember = async () => {
+      if (!workspace.value || !editForm.value) return;
+      savingMember.value = true;
+      try {
+        const res = await api.patch(`/workspaces/${workspace.value.id}/members/${editForm.value.id}`, {
+          role: editForm.value.role,
+          allowedProjectIds: editForm.value.allowedProjectIds
+        });
+        if (res.data.success) {
+          toast.success('Member permissions updated successfully!');
+          showEditModal.value = false;
+          fetchMembers();
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || 'Failed to update workspace member');
+      } finally {
+        savingMember.value = false;
       }
     };
 
@@ -465,9 +603,16 @@ export default defineComponent({
       isOwner,
       isAdmin,
       members,
+      projects,
       invitations,
       eligibleOwners,
       transferTargetId,
+      showEditModal,
+      savingMember,
+      editForm,
+      getProjectName,
+      openEditModal,
+      saveEditMember,
       onAvatarChange,
       clearAvatar,
       saveWorkspace,

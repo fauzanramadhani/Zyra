@@ -27,7 +27,6 @@ model User {
 
   // Relations
   workspaceMembers WorkspaceMember[]
-  projectMembers   ProjectMember[]
   assignedIssues   Issue[]           @relation("Assignee")
   reportedIssues   Issue[]           @relation("Reporter")
   comments         Comment[]
@@ -82,6 +81,7 @@ model WorkspaceMember {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allowedProjects WorkspaceMemberProject[]
 
   @@unique([workspaceId, userId])
 }
@@ -132,6 +132,7 @@ model WorkspaceInvitation {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   sender    User      @relation("InvitationSender", fields: [invitedBy], references: [id], onDelete: Cascade)
+  allowedProjects WorkspaceInvitationProject[]
 }
 
 // Roles & Permissions RBAC
@@ -220,7 +221,8 @@ model Project {
 
   // Relations
   workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  members         ProjectMember[]
+  workspaceMemberProjects WorkspaceMemberProject[]
+  invitationProjects WorkspaceInvitationProject[]
   boards          Board[]
   issues          Issue[]
   sprints         Sprint[]
@@ -244,17 +246,27 @@ model Project {
   @@unique([workspaceId, key])
 }
 
-model ProjectMember {
-  id        String   @id @default(uuid())
-  projectId String
-  userId    String
-  role      String // "ADMIN", "MEMBER", "VIEWER"
-  createdAt DateTime @default(now())
+model WorkspaceMemberProject {
+  id                String          @id @default(uuid())
+  workspaceMemberId String
+  projectId         String
+  createdAt         DateTime        @default(now())
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceMember   WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, userId])
+  @@unique([workspaceMemberId, projectId])
+}
+
+model WorkspaceInvitationProject {
+  id           String              @id @default(uuid())
+  invitationId String
+  projectId    String
+
+  invitation   WorkspaceInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([invitationId, projectId])
 }
 
 // Sprints & Boards

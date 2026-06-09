@@ -58,10 +58,10 @@ export const useInvitationStore = defineStore('invitation', {
       }
     },
 
-    async createInvitation(workspaceId: string, email: string, role: string) {
+    async createInvitation(workspaceId: string, email: string, role: string, allowedProjectIds?: string[]) {
       this.loading = true;
       try {
-        const response = await api.post('/invitations', { workspaceId, email, role });
+        const response = await api.post('/invitations', { workspaceId, email, role, allowedProjectIds });
         if (response.data.success) {
           this.invitations = [response.data.data, ...this.invitations];
           return true;

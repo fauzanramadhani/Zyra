@@ -6,15 +6,13 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Stage 2: Production release served via Node (Vite Preview)
+# Stage 2: Production release served via Node (Serve Package)
 FROM node:18-alpine AS production
 WORKDIR /app
-COPY package*.json ./
-RUN npm install --only=production
+RUN npm install -g serve
 COPY --from=builder /app/dist ./dist
 EXPOSE 3000
-# Run Vite preview to serve build files on port 3000
-CMD ["npm", "run", "preview", "--", "--host", "--port", "3000"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
 
 # Stage 3: Development (default)
 FROM node:18-alpine AS development

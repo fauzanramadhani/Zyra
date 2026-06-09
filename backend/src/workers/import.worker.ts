@@ -376,13 +376,24 @@ export function startImportWorker() {
             if (user) {
               assigneeId = user.id;
 
-              const isProjectMember = await prisma.projectMember.findUnique({
-                where: { projectId_userId: { projectId, userId: user.id } },
+              // Since roles and access are now centralized at the workspace level,
+              // check if there is a WorkspaceMember record for this user, and ensure they have a project access record.
+              const member = await prisma.workspaceMember.findUnique({
+                where: { workspaceId_userId: { workspaceId: project.workspaceId, userId: user.id } },
               });
-              if (!isProjectMember) {
-                await prisma.projectMember.create({
-                  data: { projectId, userId: user.id, role: 'MEMBER' },
-                });
+              
+              if (member) {
+                // Check if they need explicit project access (OWNER and SUPER_ADMIN do not need explicit rows)
+                if (member.role !== 'OWNER' && member.role !== 'SUPER_ADMIN') {
+                  const hasAccess = await prisma.workspaceMemberProject.findUnique({
+                    where: { workspaceMemberId_projectId: { workspaceMemberId: member.id, projectId } },
+                  });
+                  if (!hasAccess) {
+                    await prisma.workspaceMemberProject.create({
+                      data: { workspaceMemberId: member.id, projectId },
+                    });
+                  }
+                }
               }
             }
           }

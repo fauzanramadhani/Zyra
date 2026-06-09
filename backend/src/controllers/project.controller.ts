@@ -5,19 +5,54 @@ import { AuthenticatedRequest } from '../types';
 
 export async function listProjects(req: AuthenticatedRequest, res: Response) {
   const { workspaceId } = req.query;
+  const userId = req.user?.id;
 
   if (!workspaceId) {
     return sendError(res, 400, 'Workspace ID query parameter is required');
   }
 
   try {
-    const projects = await prisma.project.findMany({
+    // 1. Fetch current user's workspace membership and role
+    const currentMember = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: workspaceId as string, userId: userId! } },
+    });
+
+    if (!currentMember) {
+      return sendError(res, 403, 'You are not a member of this workspace');
+    }
+
+    // 2. Fetch projects
+    let projects = await prisma.project.findMany({
       where: {
         workspaceId: workspaceId as string,
         deletedAt: null,
       },
       include: {
-        members: {
+        boards: true,
+      },
+    });
+
+    // 3. Filter projects: Only OWNER & SUPER_ADMIN can see everything. ADMIN, MEMBER, VIEWER can only see allowed projects.
+    if (currentMember.role !== 'OWNER' && currentMember.role !== 'SUPER_ADMIN') {
+      const allowedProjects = await prisma.workspaceMemberProject.findMany({
+        where: { workspaceMemberId: currentMember.id },
+        select: { projectId: true },
+      });
+      const allowedProjectIds = allowedProjects.map((ap) => ap.projectId);
+      projects = projects.filter((p) => allowedProjectIds.includes(p.id));
+    }
+
+    // 4. Map virtual members for each visible project
+    const projectsWithMembers = await Promise.all(
+      projects.map(async (project) => {
+        const workspaceMembers = await prisma.workspaceMember.findMany({
+          where: {
+            workspaceId: project.workspaceId,
+            OR: [
+              { role: { in: ['OWNER', 'SUPER_ADMIN'] } },
+              { allowedProjects: { some: { projectId: project.id } } }
+            ]
+          },
           include: {
             user: {
               select: {
@@ -25,15 +60,25 @@ export async function listProjects(req: AuthenticatedRequest, res: Response) {
                 firstName: true,
                 lastName: true,
                 avatarUrl: true,
-              },
-            },
-          },
-        },
-        boards: true,
-      },
-    });
+              }
+            }
+          }
+        });
 
-    return sendSuccess(res, 'Projects loaded', projects);
+        const formattedMembers = workspaceMembers.map((m) => ({
+          id: m.id,
+          role: m.role,
+          user: m.user
+        }));
+
+        return {
+          ...project,
+          members: formattedMembers
+        };
+      })
+    );
+
+    return sendSuccess(res, 'Projects loaded', projectsWithMembers);
   } catch (error: any) {
     console.error('List projects error:', error);
     return sendError(res, 500, 'Failed to retrieve projects');
@@ -69,14 +114,18 @@ export async function createProject(req: AuthenticatedRequest, res: Response) {
         },
       });
 
-      // Add creator as Admin member
-      await tx.projectMember.create({
-        data: {
-          projectId: p.id,
-          userId: userId!,
-          role: 'ADMIN',
-        },
+      // Add creator to WorkspaceMemberProject access list
+      const wsMember = await tx.workspaceMember.findUnique({
+        where: { workspaceId_userId: { workspaceId, userId: userId! } }
       });
+      if (wsMember) {
+        await tx.workspaceMemberProject.create({
+          data: {
+            workspaceMemberId: wsMember.id,
+            projectId: p.id
+          }
+        });
+      }
 
       // Create default workflow matching columns
       const wf = await tx.workflow.create({
@@ -145,20 +194,7 @@ export async function getProject(req: AuthenticatedRequest, res: Response) {
       where: { id: projectId, deletedAt: null },
       include: {
         boards: true,
-        sprints: true,
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                avatarUrl: true,
-              },
-            },
-          },
-        },
+        sprints: true
       },
     });
 
@@ -166,87 +202,43 @@ export async function getProject(req: AuthenticatedRequest, res: Response) {
       return sendError(res, 404, 'Project not found');
     }
 
-    return sendSuccess(res, 'Project loaded', project);
+    // Retrieve workspace members that are OWNER/SUPER_ADMIN or have WorkspaceMemberProject link
+    const workspaceMembers = await prisma.workspaceMember.findMany({
+      where: {
+        workspaceId: project.workspaceId,
+        OR: [
+          { role: { in: ['OWNER', 'SUPER_ADMIN'] } },
+          { allowedProjects: { some: { projectId } } }
+        ]
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+          }
+        }
+      }
+    });
+
+    const formattedMembers = workspaceMembers.map((m) => ({
+      id: m.id,
+      role: m.role,
+      user: m.user
+    }));
+
+    const result = {
+      ...project,
+      members: formattedMembers
+    };
+
+    return sendSuccess(res, 'Project loaded', result);
   } catch (error: any) {
     console.error('Get project error:', error);
     return sendError(res, 500, 'Failed to retrieve project details');
-  }
-}
-
-export async function addProjectMember(req: AuthenticatedRequest, res: Response) {
-  const userId = req.user?.id;
-  const { projectId } = req.params;
-  const { email, role } = req.body;
-
-  if (!email || !role) {
-    return sendError(res, 400, 'Email and role are required');
-  }
-
-  try {
-    const project = await prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) return sendError(res, 404, 'Project not found');
-
-    // 1. Verify user is Admin of the project
-    const currentMember = await prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: { projectId, userId: userId! },
-      },
-    });
-
-    if (!currentMember || currentMember.role !== 'ADMIN') {
-      return sendError(res, 403, 'Only project administrators can add members');
-    }
-
-    // 2. Find user in the system
-    const targetUser = await prisma.user.findUnique({ where: { email } });
-    if (!targetUser) {
-      return sendError(res, 404, 'User not found in system. Invite them to the workspace first.');
-    }
-
-    // 3. Verify user is a member of the workspace
-    const workspaceMember = await prisma.workspaceMember.findUnique({
-      where: {
-        workspaceId_userId: { workspaceId: project.workspaceId, userId: targetUser.id },
-      },
-    });
-
-    if (!workspaceMember) {
-      return sendError(res, 400, 'User must be a member of the workspace before being added to the project');
-    }
-
-    // 4. Check if already a member of the project
-    const existingProjectMember = await prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: { projectId, userId: targetUser.id },
-      },
-    });
-
-    if (existingProjectMember) {
-      return sendError(res, 400, 'User is already a member of this project');
-    }
-
-    const member = await prisma.projectMember.create({
-      data: {
-        projectId,
-        userId: targetUser.id,
-        role,
-      },
-      include: {
-        user: true,
-      },
-    });
-
-    return sendCreated(res, 'Project member added', {
-      id: member.user.id,
-      email: member.user.email,
-      firstName: member.user.firstName,
-      lastName: member.user.lastName,
-      avatarUrl: member.user.avatarUrl,
-      role: member.role,
-    });
-  } catch (error: any) {
-    console.error('Add project member error:', error);
-    return sendError(res, 500, 'Failed to add project member');
   }
 }
 
@@ -255,12 +247,23 @@ export async function deleteProject(req: AuthenticatedRequest, res: Response) {
   const { projectId } = req.params;
 
   try {
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: userId! } },
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) return sendError(res, 404, 'Project not found');
+
+    const wsMember = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: project.workspaceId, userId: userId! } }
     });
 
-    if (!member || member.role !== 'ADMIN') {
-      return sendError(res, 403, 'Only project administrators can delete projects');
+    if (!wsMember) return sendError(res, 403, 'Forbidden');
+
+    const hasAdminAccess = wsMember.role === 'OWNER' || 
+                           wsMember.role === 'SUPER_ADMIN' || 
+                           (wsMember.role === 'ADMIN' && await prisma.workspaceMemberProject.findUnique({
+                             where: { workspaceMemberId_projectId: { workspaceMemberId: wsMember.id, projectId } }
+                           }));
+
+    if (!hasAdminAccess) {
+      return sendError(res, 403, 'Only project or workspace administrators can delete projects');
     }
 
     await prisma.project.update({
@@ -290,12 +293,23 @@ export async function updateProject(req: AuthenticatedRequest, res: Response) {
   const userId = req.user?.id;
 
   try {
-    const member = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: userId! } },
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) return sendError(res, 404, 'Project not found');
+
+    const wsMember = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: project.workspaceId, userId: userId! } }
     });
 
-    if (!member || member.role !== 'ADMIN') {
-      return sendError(res, 403, 'Only project administrators can update project settings');
+    if (!wsMember) return sendError(res, 403, 'Forbidden');
+
+    const hasAdminAccess = wsMember.role === 'OWNER' || 
+                           wsMember.role === 'SUPER_ADMIN' || 
+                           (wsMember.role === 'ADMIN' && await prisma.workspaceMemberProject.findUnique({
+                             where: { workspaceMemberId_projectId: { workspaceMemberId: wsMember.id, projectId } }
+                           }));
+
+    if (!hasAdminAccess) {
+      return sendError(res, 403, 'Only project or workspace administrators can update project settings');
     }
 
     const data: any = {};
@@ -306,9 +320,8 @@ export async function updateProject(req: AuthenticatedRequest, res: Response) {
     if (leadId) data.leadId = leadId;
 
     if (key) {
-      const project = await prisma.project.findUnique({ where: { id: projectId } });
       const existing = await prisma.project.findFirst({
-        where: { key: key.toUpperCase(), workspaceId: project!.workspaceId, id: { not: projectId } }
+        where: { key: key.toUpperCase(), workspaceId: project.workspaceId, id: { not: projectId } }
       });
       if (existing) {
         return sendError(res, 400, `Project key '${key}' is already in use`);
@@ -334,30 +347,6 @@ export async function updateProject(req: AuthenticatedRequest, res: Response) {
   } catch (error: any) {
     console.error('Update project error:', error);
     return sendError(res, 500, 'Failed to update project');
-  }
-}
-
-export async function removeProjectMember(req: AuthenticatedRequest, res: Response) {
-  const { projectId, userId: targetUserId } = req.params;
-  const userId = req.user?.id;
-
-  try {
-    const currentMember = await prisma.projectMember.findUnique({
-      where: { projectId_userId: { projectId, userId: userId! } }
-    });
-
-    if (!currentMember || currentMember.role !== 'ADMIN') {
-      return sendError(res, 403, 'Only project administrators can remove members');
-    }
-
-    await prisma.projectMember.delete({
-      where: { projectId_userId: { projectId, userId: targetUserId } }
-    });
-
-    return sendSuccess(res, 'Member removed from project successfully');
-  } catch (error: any) {
-    console.error('Remove project member error:', error);
-    return sendError(res, 500, 'Failed to remove project member');
   }
 }
 
